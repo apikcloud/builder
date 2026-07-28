@@ -39,10 +39,7 @@ func newBuildCmd() *cobra.Command {
 				return err
 			}
 
-			if loadFlag && mode == launcher.ModeLauncher {
-				return fmt.Errorf("builder: --load requires Engine Mode (buildctl/buildkitd on PATH) — pass --mode engine, install BuildKit locally, or drop --load and run `docker load -i` on the OCI/docker tarball manually")
-			}
-			if loadFlag && mode == launcher.ModeAuto && launcher.Needed(engine.CommandBuild) {
+			if loadFlag && (mode == launcher.ModeLauncher || (mode == launcher.ModeAuto && launcher.Needed(engine.CommandBuild))) {
 				return fmt.Errorf("builder: --load requires Engine Mode (buildctl/buildkitd on PATH) — pass --mode engine, install BuildKit locally, or drop --load and run `docker load -i` on the OCI/docker tarball manually")
 			}
 

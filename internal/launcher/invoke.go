@@ -28,7 +28,13 @@ func Invoke(ctx context.Context, mode Mode, req engine.BuildRequest, stderr io.W
 
 	if !needsContainer {
 		resp, err := invokeLocal(ctx, req, stderr)
-		if err != nil && mode == ModeAuto && resp.ErrorCode == engine.ErrorCodeRootlessRequired {
+		// req.Load never retries into the container: the container's
+		// resolved ImagePath/BuildDir are in-container paths (RepoRoot is
+		// rewritten to /workspace below) and are never translated back to
+		// host paths, so a subsequent `docker/podman load -i` against
+		// resp.ImagePath on the host would fail. Surface the rootless
+		// error directly instead — same as an explicit --mode engine.
+		if err != nil && mode == ModeAuto && !req.Load && resp.ErrorCode == engine.ErrorCodeRootlessRequired {
 			fmt.Fprintln(stderr, "builder: buildkitd can't run directly on this host (needs root/RootlessKit) — retrying inside the odoo-builder container image")
 			return invokeContainer(ctx, req, stderr)
 		}

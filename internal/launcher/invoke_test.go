@@ -90,6 +90,21 @@ func TestInvoke_AutoMode_RetriesContainer_OnRootlessRequired(t *testing.T) {
 	assert.Contains(t, stderr.String(), "retrying inside the odoo-builder container image")
 }
 
+func TestInvoke_AutoMode_Load_DoesNotRetryContainer_OnRootlessRequired(t *testing.T) {
+	withFakeEngineOnPath(t)
+	// DetectRuntime is left free to fail/succeed for real — the point of
+	// this test is that it's never even called, since --load must not
+	// retry into the container.
+	stubLookPath(t, map[string]bool{EngineBinary: true, "docker": false, "podman": false})
+
+	var stderr bytes.Buffer
+	_, err := Invoke(context.Background(), ModeAuto, engine.BuildRequest{RepoRoot: "ROOTLESS", Load: true}, &stderr)
+
+	require.Error(t, err)
+	assert.Equal(t, "rootless needed", err.Error())
+	assert.NotContains(t, stderr.String(), "retrying inside")
+}
+
 func TestInvoke_ModeEngine_RequiresEngineBinaryOnPath(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 
