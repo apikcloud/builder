@@ -11,7 +11,7 @@ COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 DATE   := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 BUILD_ARGS := --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE)
 
-.PHONY: build test lint fmt vet clean image dist dist-archive image-verify image-push
+.PHONY: build test lint fmt vet clean image image-dev dist dist-archive image-verify image-push
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/odoo-builder ./cmd/odoo-builder
@@ -39,6 +39,17 @@ image:
 	  $(BUILD_ARGS) \
 	  -t $(IMAGE):$(IMAGE_TAG) \
 	  -f image/Dockerfile .
+
+# image-dev builds the distributable image from local sources and tags it
+# ":dev" — a tag internal/launcher.ImageRef never resolves to on its own
+# (only an exact release tag or "latest"), so Launcher Mode would otherwise
+# keep running whatever ":latest" was last pulled instead of this build.
+# Make can't export into the invoking shell's environment, so this only
+# prints the export line (build log goes to stderr); run it as:
+#   eval "$(make image-dev)"
+image-dev:
+	@docker build $(BUILD_ARGS) -t $(IMAGE):dev -f image/Dockerfile . >&2
+	@echo "export ODOO_BUILDER_IMAGE=$(IMAGE):dev"
 
 image-verify:
 	docker buildx build \
