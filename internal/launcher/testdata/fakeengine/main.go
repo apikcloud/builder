@@ -33,6 +33,9 @@ func main() {
 	case "BADOUTPUT":
 		fmt.Println("not json")
 		os.Exit(1)
+	case "GARBAGE_EXIT0":
+		fmt.Println("pulling image progress line")
+		os.Exit(0)
 	default:
 		fmt.Println(`{"apiVersion":"v1","buildDir":"/fake/build","addonCount":3}`)
 	}

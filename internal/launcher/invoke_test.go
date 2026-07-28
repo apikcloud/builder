@@ -67,6 +67,15 @@ func TestInvokeLocal_NonJSONStdout_SurfacesRunErr(t *testing.T) {
 	assert.NotContains(t, err.Error(), "decoding engine response")
 }
 
+func TestInvokeLocal_NonJSONStdout_ExitZero_IncludesSnippet(t *testing.T) {
+	withFakeEngineOnPath(t)
+
+	_, err := invokeLocal(context.Background(), engine.BuildRequest{RepoRoot: "GARBAGE_EXIT0"}, os.Stderr)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "decoding engine response")
+	assert.Contains(t, err.Error(), "pulling image progress line")
+}
+
 func TestInvokeLocal_RespError_SurfacesAsGoError(t *testing.T) {
 	withFakeEngineOnPath(t)
 

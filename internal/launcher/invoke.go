@@ -11,9 +11,26 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/apikcloud/odoo-builder/internal/engine"
 )
+
+// gracefulCancel replaces a *exec.Cmd's default ctx-cancellation behavior
+// (an immediate, unblockable SIGKILL) with os.Interrupt (SIGINT on Unix)
+// plus a grace period. It matters specifically for invokeContainer:
+// exec.CommandContext's default Cancel kills only the local docker/
+// podman-run client, which does not stop the container running
+// server-side — docker/podman's own sig-proxy forwards the signal into the
+// container (where entrypoint.sh now forwards it again, to
+// odoo-builder-engine) only if the client process actually receives it
+// rather than being killed out from under it. The WaitDelay fallback still
+// guarantees termination if the graceful path hangs.
+func gracefulCancel(cmd *exec.Cmd) {
+	cmd.Cancel = func() error { return cmd.Process.Signal(os.Interrupt) }
+	cmd.WaitDelay = 10 * time.Second
+}
 
 // Invoke runs req against the engine — locally if mode/Needed() allow it,
 // containerized otherwise — and returns its BuildResponse. stderr is
@@ -55,6 +72,7 @@ func invokeLocal(ctx context.Context, req engine.BuildRequest, stderr io.Writer)
 	cmd.Stderr = stderr
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	gracefulCancel(cmd)
 
 	runErr := cmd.Run() // non-zero exit (resp.Error set) is not itself fatal here
 
@@ -63,7 +81,7 @@ func invokeLocal(ctx context.Context, req engine.BuildRequest, stderr io.Writer)
 		if runErr != nil {
 			return engine.BuildResponse{}, runErr
 		}
-		return engine.BuildResponse{}, fmt.Errorf("launcher: decoding engine response: %w", err)
+		return engine.BuildResponse{}, fmt.Errorf("launcher: decoding engine response: %w (stdout: %s)", err, snippet(out.Bytes()))
 	}
 	if resp.Error != "" {
 		// resp is returned alongside the error (not discarded) precisely so
@@ -103,6 +121,7 @@ func invokeContainer(ctx context.Context, req engine.BuildRequest, stderr io.Wri
 	cmd.Stderr = stderr
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	gracefulCancel(cmd)
 
 	runErr := cmd.Run()
 
@@ -111,12 +130,32 @@ func invokeContainer(ctx context.Context, req engine.BuildRequest, stderr io.Wri
 		if runErr != nil {
 			return engine.BuildResponse{}, runErr
 		}
-		return engine.BuildResponse{}, fmt.Errorf("launcher: decoding engine response: %w", err)
+		return engine.BuildResponse{}, fmt.Errorf("launcher: decoding engine response: %w (stdout: %s)", err, snippet(out.Bytes()))
 	}
 	if resp.Error != "" {
 		return resp, errors.New(resp.Error)
 	}
 	return resp, nil
+}
+
+// snippet returns a bounded, single-line preview of b for embedding in error
+// messages — the raw bytes are otherwise discarded once JSON-decoding them
+// fails, leaving no way to see what a misbehaving engine/runtime actually
+// wrote to stdout (e.g. pull/build progress text leaking in ahead of the
+// JSON response).
+func snippet(b []byte) string {
+	const maxLen = 200
+	s := strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, string(b))
+	s = strings.TrimSpace(s)
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }
 
 // dockerConfigDirIfPresent returns the host's ~/.docker directory if it
