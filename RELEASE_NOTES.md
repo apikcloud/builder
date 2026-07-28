@@ -2,6 +2,14 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.5.0] - 2026-07-28
+
+A small visibility improvement so builds no longer look stuck.
+
+### ✨ What's new
+
+- You'll now see a short summary of what's about to build, plus live progress while Enterprise addons are being fetched — no more silent waiting during that step.
+
 ## [0.4.3] - 2026-07-28
 
 A follow-up fix to last version's build speedup, plus a documentation note.
