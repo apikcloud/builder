@@ -10,9 +10,10 @@ on Docker, Podman, Kubernetes Jobs, and CI.
 curl -fsSL https://raw.githubusercontent.com/apikcloud/builder/main/install.sh | sh
 ```
 
-Downloads the latest release binary for your platform (linux/amd64,
-linux/arm64), verifies its checksum, and installs it to `/usr/local/bin`
-(falls back to `~/.local/bin`). Set `VERSION=vX.Y.Z` to pin a release.
+Downloads the latest release for your platform (linux/amd64, linux/arm64),
+verifies its checksum, and installs both `odoo-builder` and
+`odoo-builder-engine` to `/usr/local/bin` (falls back to `~/.local/bin`). Set
+`VERSION=vX.Y.Z` to pin a release.
 
 ## Quick start
 
@@ -89,17 +90,29 @@ No Dockerfile expected or wanted.
 odoo-builder build      # build (and push/load) the image
 odoo-builder prepare    # produce the deterministic .build/ context only
 odoo-builder validate   # check repo layout, addons, packages.txt, odoo-builder.yaml
-odoo-builder inspect     # print the resolved BuildRequest without building
+odoo-builder inspect    # print the resolved configuration without building
 odoo-builder version
 ```
 
-### Engine Mode vs Launcher Mode
+### Two binaries: launcher and engine
 
-`odoo-builder build` runs BuildKit either directly on the host (**Engine Mode**,
-if `buildctl`/`buildkitd` are on `PATH`) or inside the distributable builder
-image via Docker/Podman (**Launcher Mode**, using the exact pinned BuildKit
+`odoo-builder` ships as two binaries: `odoo-builder` (a thin, host-side
+launcher) and `odoo-builder-engine` (does the real work — validate, prepare,
+build, inspect). Every command the launcher runs builds a versioned
+`BuildRequest`, sends it as JSON to the engine, and prints the `BuildResponse`
+it gets back. The engine runs either directly on the host, as a local
+subprocess (**Engine Mode**, when `odoo-builder-engine` and — for `build` —
+`buildctl`/`buildkitd` are on `PATH`), or inside the distributable container
+image via Docker/Podman (**Launcher Mode**, piping the same JSON request/
+response over the container's stdin/stdout, using the exact pinned BuildKit
 version). Default is automatic (`--mode auto`); override with `--mode engine`
 or `--mode launcher`, or the `ODOO_BUILDER_MODE` env var.
+
+`odoo-builder-engine` can also be invoked directly, without the launcher —
+reading a `BuildRequest` from `ODOO_BUILDER_REQUEST_FILE` (or stdin) and
+writing its `BuildResponse` to `ODOO_BUILDER_RESPONSE_FILE` (or stdout). This
+is the integration path for Kubernetes Jobs and CI systems that run the
+container image directly rather than shelling out to the launcher.
 
 ### `--load`: build straight into your local image store
 
@@ -181,7 +194,9 @@ order:
 * Reproducible, deterministic builds — running `odoo-builder prepare` twice
   produces identical output.
 * No Dockerfile required; BuildKit is an implementation detail.
-* The builder image is the product; the local CLI is only a thin launcher.
+* The builder image is the product; `odoo-builder` is only a thin,
+  host-side launcher — all real work happens in `odoo-builder-engine`,
+  whether that binary runs locally or inside the container image.
 
 ## License
 

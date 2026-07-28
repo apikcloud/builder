@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/apikcloud/odoo-builder/internal/engine"
 )
 
 // DefaultImage is the distributable odoo-builder image run when the host
@@ -21,18 +23,37 @@ const DefaultImage = "ghcr.io/apikcloud/odoo-builder"
 // ImageEnvVar, when set, overrides DefaultImage (including its tag).
 const ImageEnvVar = "ODOO_BUILDER_IMAGE"
 
+// EngineBinary is the name of the engine binary the launcher execs
+// locally, resolved via $PATH (installed alongside odoo-builder by
+// install.sh/dist-archive).
+const EngineBinary = "odoo-builder-engine"
+
 // lookPath is exec.LookPath, indirected so tests can simulate
-// buildctl/buildkitd being present or absent without needing the real
-// binaries on PATH.
+// buildctl/buildkitd/the engine binary being present or absent without
+// needing the real binaries on PATH.
 var lookPath = exec.LookPath
 
-// Needed reports whether odoo-builder build must go straight to running the
-// distributable image because the required binaries aren't even present:
-// true unless both buildctl and buildkitd are found on PATH. This does
-// NOT detect "present but can't run" (e.g. buildkitd needing RootlessKit)
-// — that case is caught separately, by internal/buildkit's
-// ErrRootlessRequired, after a direct attempt actually fails.
-func Needed() bool {
+// engineAvailable reports whether EngineBinary is on $PATH.
+func engineAvailable() bool {
+	_, err := lookPath(EngineBinary)
+	return err == nil
+}
+
+// Needed reports whether a request must run containerized: true if the
+// engine binary itself isn't on PATH, or — for cmd == engine.CommandBuild
+// specifically — buildctl/buildkitd aren't on PATH either. Other commands
+// (validate/prepare/inspect) don't require BuildKit tools, only the engine
+// binary. This does NOT detect "buildctl/buildkitd present but can't run"
+// (e.g. buildkitd needing RootlessKit) — that case is caught separately, by
+// internal/buildkit's ErrRootlessRequired, after a direct attempt actually
+// fails.
+func Needed(cmd engine.Command) bool {
+	if !engineAvailable() {
+		return true
+	}
+	if cmd != engine.CommandBuild {
+		return false
+	}
 	_, buildctlErr := lookPath("buildctl")
 	_, buildkitdErr := lookPath("buildkitd")
 	return buildctlErr != nil || buildkitdErr != nil

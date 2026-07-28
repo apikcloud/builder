@@ -9,9 +9,16 @@ import (
 
 	"github.com/apikcloud/odoo-builder/internal/buildkit"
 	"github.com/apikcloud/odoo-builder/internal/config"
+	"github.com/apikcloud/odoo-builder/internal/dockerfile"
 	"github.com/apikcloud/odoo-builder/internal/prepare"
 	"github.com/apikcloud/odoo-builder/internal/registry"
 )
+
+// errValidationFailed is wrapped into Build's pre-build validation error so
+// Execute can distinguish "failed during pre-build validation" from "failed
+// during the actual BuildKit invocation" via errors.Is, without
+// string-matching the error's text.
+var errValidationFailed = errors.New("engine: validation failed")
 
 // Engine executes BuildRequests. It has no knowledge of how a request was
 // triggered.
@@ -87,7 +94,51 @@ func (e *Engine) Inspect(req BuildRequest) (BuildRequest, error) {
 	}
 	req.Output = output
 
+	resolved, err := resolveSpec(req.RepoRoot, cfg)
+	if err != nil {
+		return BuildRequest{}, err
+	}
+	req.Resolved = resolved
+
 	return req, nil
+}
+
+// resolveSpec translates cfg (odoo-builder.yaml, already loaded) into the
+// wire-contract ResolvedSpec returned in BuildResponse and echoed on
+// BuildRequest.Resolved.
+func resolveSpec(repoRoot string, cfg *config.Config) (*ResolvedSpec, error) {
+	baseImage, err := dockerfile.ResolveBaseImage(repoRoot, cfg.Base)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResolvedSpec{
+		Base: BaseImageSpec{
+			Version: cfg.Base.Version,
+			Release: cfg.Base.Release,
+			Image:   baseImage,
+		},
+		Image: ImageSpec{
+			Name:   cfg.Image.Name,
+			Tag:    cfg.Image.Tag,
+			Labels: cfg.Labels,
+			Env:    cfg.Environment,
+		},
+		Builder: BuilderSpec{
+			Platforms:    cfg.Build.Platform,
+			CacheEnabled: cfg.Cache.Enabled,
+		},
+		Enterprise: EnterpriseSpec{
+			Enabled: cfg.Enterprise.Enabled,
+			Commit:  cfg.Enterprise.Commit,
+			Date:    cfg.Enterprise.Date,
+		},
+		Addons: AddonsSpec{
+			Include:                cfg.Addons.Include,
+			Exclude:                cfg.Addons.Exclude,
+			SkipManifestValidation: cfg.Addons.SkipManifestValidation,
+		},
+	}, nil
 }
 
 // Build runs the full pipeline — Validate, then Prepare, then invokes
@@ -97,7 +148,7 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 	req = req.Normalize()
 
 	if errs := e.Validate(req); len(errs) > 0 {
-		return BuildResult{}, fmt.Errorf("engine: validation failed: %w", errors.Join(errs...))
+		return BuildResult{}, fmt.Errorf("%w: %w", errValidationFailed, errors.Join(errs...))
 	}
 
 	cfg, err := loadConfig(req)

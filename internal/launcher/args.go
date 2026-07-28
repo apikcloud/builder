@@ -25,7 +25,11 @@ func ForwardedEnv() []string {
 // read-write at /workspace (also the container's working directory), run
 // --privileged (buildkitd's OCI worker needs root/equivalent
 // capabilities — see image/Dockerfile, which runs as root for exactly
-// this reason). If dockerConfigDir is non-empty, it is mounted read-only
+// this reason) and -i (keeps stdin open/attached — without it, "docker
+// run" closes the container's stdin immediately, and the piped
+// BuildRequest JSON internal/launcher.invokeContainer writes never
+// reaches odoo-builder-engine, which then fails with EOF reading its
+// request). If dockerConfigDir is non-empty, it is mounted read-only
 // at /root/.docker. If hostCacheDir is non-empty, it is mounted
 // read-write at /host-cache/odoo-builder — paired with an
 // XDG_CACHE_HOME=/host-cache entry in env (added by Run) so the
@@ -39,7 +43,7 @@ func ForwardedEnv() []string {
 // PATH, so it is exhaustively unit-testable without docker/podman
 // installed.
 func BuildArgs(image, workspace, dockerConfigDir, hostCacheDir string, env, args []string) []string {
-	out := []string{"run", "--rm", "--privileged",
+	out := []string{"run", "--rm", "--privileged", "-i",
 		"-v", workspace + ":/workspace",
 		"-w", "/workspace",
 	}
