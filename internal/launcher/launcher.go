@@ -12,16 +12,30 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"github.com/apikcloud/odoo-builder/internal/engine"
+	"github.com/apikcloud/odoo-builder/internal/version"
 )
 
-// DefaultImage is the distributable odoo-builder image run when the host
-// can't run BuildKit directly. Overridable via ImageEnvVar.
-const DefaultImage = "docker.io/apik/odoo-builder"
+// DefaultImageRepo is the distributable odoo-builder image's repository
+// (no tag) run when the host can't run BuildKit directly. See ImageRef
+// for how its tag is chosen. Overridable wholesale via ImageEnvVar (which
+// specifies the full reference, tag included).
+const DefaultImageRepo = "docker.io/apik/odoo-builder"
 
-// ImageEnvVar, when set, overrides DefaultImage (including its tag).
+// ImageEnvVar, when set, overrides ImageRef's entire return value
+// (including the tag).
 const ImageEnvVar = "ODOO_BUILDER_IMAGE"
+
+// releaseVersionPattern matches version.Version's exact shape at a tagged
+// release build — e.g. "v0.4.2" (see Makefile's VERSION, built from `git
+// describe --tags --always --dirty` against the tagged commit itself in
+// .github/workflows/release.yml, which pushes the image under that same
+// tag). A plain `go build` ("dev") or a dirty/ahead-of-tag checkout
+// ("vX.Y.Z-N-gHASH[-dirty]") has no matching image tag in the registry,
+// so ImageRef falls back to "latest" for those instead.
+var releaseVersionPattern = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 
 // EngineBinary is the name of the engine binary the launcher execs
 // locally, resolved via $PATH (installed alongside odoo-builder by
@@ -80,10 +94,20 @@ func DetectRuntime() (Runtime, error) {
 }
 
 // ImageRef returns the image reference to run: ImageEnvVar's value if
-// set, otherwise DefaultImage.
+// set, otherwise DefaultImageRepo tagged with the running binary's own
+// version — so the launcher always drives the exact image release built
+// alongside it, rather than a possibly-stale "latest" a host happened to
+// pull once before (docker/podman run don't re-pull an existing tag on
+// their own). Falls back to ":latest" when the binary's own version isn't
+// itself a tagged release (local/dev builds), since no matching image tag
+// exists in the registry for those.
 func ImageRef() string {
 	if v := os.Getenv(ImageEnvVar); v != "" {
 		return v
 	}
-	return DefaultImage
+	tag := "latest"
+	if releaseVersionPattern.MatchString(version.Version) {
+		tag = version.Version
+	}
+	return DefaultImageRepo + ":" + tag
 }

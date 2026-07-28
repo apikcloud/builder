@@ -9,7 +9,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/apikcloud/odoo-builder/internal/engine"
+	"github.com/apikcloud/odoo-builder/internal/version"
 )
+
+// withVersion sets version.Version for the duration of t, restoring it
+// afterwards — version.Version is normally fixed at build time via
+// -ldflags, but ImageRef reads it at runtime, so tests drive it directly.
+func withVersion(t *testing.T, v string) {
+	t.Helper()
+	old := version.Version
+	version.Version = v
+	t.Cleanup(func() { version.Version = old })
+}
 
 func stubLookPath(t *testing.T, found map[string]bool) {
 	t.Helper()
@@ -71,10 +82,24 @@ func TestDetectRuntime(t *testing.T) {
 }
 
 func TestImageRef(t *testing.T) {
-	assert.Equal(t, DefaultImage, ImageRef())
+	t.Run("dev/dirty version falls back to latest", func(t *testing.T) {
+		withVersion(t, "dev")
+		assert.Equal(t, DefaultImageRepo+":latest", ImageRef())
 
-	t.Setenv(ImageEnvVar, "custom:tag")
-	assert.Equal(t, "custom:tag", ImageRef())
+		withVersion(t, "v0.4.2-3-gabc123-dirty")
+		assert.Equal(t, DefaultImageRepo+":latest", ImageRef())
+	})
+
+	t.Run("tagged release version pins the matching image tag", func(t *testing.T) {
+		withVersion(t, "v0.4.2")
+		assert.Equal(t, DefaultImageRepo+":v0.4.2", ImageRef())
+	})
+
+	t.Run("env var overrides everything, tag included", func(t *testing.T) {
+		withVersion(t, "v0.4.2")
+		t.Setenv(ImageEnvVar, "custom:tag")
+		assert.Equal(t, "custom:tag", ImageRef())
+	})
 }
 
 func TestForwardedEnv(t *testing.T) {
