@@ -2,6 +2,24 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.4.0] - 2026-07-28
+
+Faster, more reliable builds: better caching control, and Ctrl+C actually works now.
+
+### ✨ What's new
+
+- New `cache.type` option lets you cache builds on disk even when pushing images to a registry, instead of always going through the registry for cache — faster repeat builds.
+
+### 🔄 Improvements
+
+- Builds skip a redundant network check for the base Odoo image, shaving a bit of time off every run.
+
+### 🐛 Fixes
+
+- Pressing Ctrl+C during a build now actually stops it, instead of leaving it running in the background.
+- Fixed a fallback path that pointed at a container image that was never actually published.
+- Clearer error messages when something goes wrong decoding a build's response.
+
 ## [0.3.0] - 2026-07-28
 
 Under-the-hood rework: the CLI now runs as two cooperating binaries, plus a couple of small fixes.
