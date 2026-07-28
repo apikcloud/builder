@@ -2,6 +2,18 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.4.3] - 2026-07-28
+
+A follow-up fix to last version's build speedup, plus a documentation note.
+
+### 🐛 Fixes
+
+- Builds run via the container image now always use the exact image version matching your `odoo-builder` install, instead of possibly reusing an older cached image under the same tag. This makes sure everyone actually gets last version's speedup, and any future fix, right away.
+
+### 📝 Documentation
+
+- The README now explains when running directly on your machine (if you have `buildctl`/`buildkitd` installed) is faster than the container image, and that `odoo-builder` already picks the faster option for you automatically when it can.
+
 ## [0.4.2] - 2026-07-28
 
 A speed fix under the hood for anyone building inside the container image.

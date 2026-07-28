@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-07-28
+
+### Fixed
+
+- Container-mode builds now default to the exact image tag matching the launcher binary's own release version instead of `latest` — `docker`/`podman run` never re-pull an already-cached tag, so a host that had pulled an older `latest` once was silently running a stale image forever, even after a newer one was pushed. `ODOO_BUILDER_IMAGE` still overrides this.
+
+### Documentation
+
+- Note Engine Mode's performance advantage over Launcher Mode in the README, and when `--mode auto` already picks it for you
+
 ## [0.4.2] - 2026-07-28
 
 ### Performance
