@@ -11,7 +11,7 @@ import (
 )
 
 func newValidateCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate the repository layout and configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -19,17 +19,27 @@ func newValidateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			mode, err := resolveModeFlag(cmd)
+			if err != nil {
+				return err
+			}
 
-			errs := newEngine().Validate(engine.BuildRequest{RepoRoot: cwd})
-			if len(errs) == 0 {
+			req := engine.BuildRequest{APIVersion: engine.APIVersion, Command: engine.CommandValidate, RepoRoot: cwd}
+			resp, err := invokeEngine(cmd.Context(), mode, req, cmd.ErrOrStderr())
+			if err != nil {
+				return err
+			}
+
+			if len(resp.ValidationErrors) == 0 {
 				fmt.Fprintln(cmd.OutOrStdout(), "OK")
 				return nil
 			}
-
-			for _, e := range errs {
+			for _, e := range resp.ValidationErrors {
 				fmt.Fprintln(cmd.ErrOrStderr(), e)
 			}
-			return fmt.Errorf("validate: %d error(s) found", len(errs))
+			return fmt.Errorf("validate: %d error(s) found", len(resp.ValidationErrors))
 		},
 	}
+	cmd.Flags().String("mode", "", modeFlagUsage)
+	return cmd
 }

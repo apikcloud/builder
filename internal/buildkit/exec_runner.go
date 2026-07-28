@@ -69,7 +69,11 @@ func (execRunner) Build(ctx context.Context, opts BuildOptions) (BuildOutput, er
 	args = append(args, cacheArgs(opts.CacheRef, opts.CacheDir)...)
 
 	cmd := exec.CommandContext(ctx, "buildctl", args...)
-	cmd.Stdout = os.Stdout
+	// buildctl's live build-progress output is routed to stderr, not
+	// stdout — the engine process's own stdout is reserved exclusively for
+	// its final JSON BuildResponse (see cmd/odoo-builder-engine), and
+	// buildctl's progress would otherwise interleave with and corrupt it.
+	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {

@@ -5,24 +5,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/apikcloud/odoo-builder/internal/engine"
-	"github.com/apikcloud/odoo-builder/internal/workspace"
 )
 
-func TestInspectCmd_PrintsResolvedBuildRequest(t *testing.T) {
+func TestInspectCmd_PrintsResolvedSpec(t *testing.T) {
 	repoDir := t.TempDir()
-	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-
 	oldWd, err := os.Getwd()
 	require.NoError(t, err)
 	require.NoError(t, os.Chdir(repoDir))
 	t.Cleanup(func() { require.NoError(t, os.Chdir(oldWd)) })
+
+	resolved := &engine.ResolvedSpec{Base: engine.BaseImageSpec{Image: "odoo:17.0-20240101"}}
+	rec := &recordingInvoke{resp: engine.BuildResponse{Resolved: resolved}}
+	stubInvokeEngine(t, rec)
 
 	cmd := newInspectCmd()
 	var out bytes.Buffer
@@ -30,26 +30,25 @@ func TestInspectCmd_PrintsResolvedBuildRequest(t *testing.T) {
 
 	require.NoError(t, cmd.RunE(cmd, nil))
 
-	var req engine.BuildRequest
-	require.NoError(t, json.Unmarshal(out.Bytes(), &req))
-	assert.Equal(t, "oci", req.Output.Type)
-	assert.True(t, filepath.IsAbs(req.Output.Path))
-	assert.Contains(t, req.Output.Path, "image.oci.tar")
+	var got engine.ResolvedSpec
+	require.NoError(t, json.Unmarshal(out.Bytes(), &got))
+	assert.Equal(t, "odoo:17.0-20240101", got.Base.Image)
 
-	_, err = os.Stat(filepath.Join(repoDir, ".build"))
-	assert.True(t, os.IsNotExist(err))
+	require.Len(t, rec.calls, 1)
+	assert.Equal(t, engine.APIVersion, rec.calls[0].APIVersion)
+	assert.Equal(t, engine.CommandInspect, rec.calls[0].Command)
+	assert.Equal(t, repoDir, rec.calls[0].RepoRoot)
 }
 
-func TestInspectCmd_MalformedConfig_ReturnsError(t *testing.T) {
+func TestInspectCmd_InvokeError_ReturnsError(t *testing.T) {
 	repoDir := t.TempDir()
-	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
-		[]byte("image:\n  name: \"app:v1\"\n"), 0o644))
-
 	oldWd, err := os.Getwd()
 	require.NoError(t, err)
 	require.NoError(t, os.Chdir(repoDir))
 	t.Cleanup(func() { require.NoError(t, os.Chdir(oldWd)) })
+
+	rec := &recordingInvoke{err: assert.AnError}
+	stubInvokeEngine(t, rec)
 
 	cmd := newInspectCmd()
 	err = cmd.RunE(cmd, nil)

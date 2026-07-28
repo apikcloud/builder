@@ -79,15 +79,16 @@ if [ ! -w "$install_dir" ] 2>/dev/null; then
 	mkdir -p "$install_dir"
 fi
 
-install_path="${install_dir}/${BIN_NAME}"
-mv "${tmp_dir}/${BIN_NAME}-${os}-${arch}" "$install_path"
-chmod +x "$install_path"
-
-log "installed ${BIN_NAME} ${version} to ${install_path}"
+for bin in "${BIN_NAME}" "${BIN_NAME}-engine"; do
+	install_path="${install_dir}/${bin}"
+	mv "${tmp_dir}/${bin}-${os}-${arch}" "$install_path"
+	chmod +x "$install_path"
+	log "installed ${bin} ${version} to ${install_path}"
+done
 
 case ":$PATH:" in
 	*":${install_dir}:"*) ;;
 	*) log "warning: ${install_dir} is not on your PATH" ;;
 esac
 
-"$install_path" version 2>/dev/null || true
+"${install_dir}/${BIN_NAME}" version 2>/dev/null || true

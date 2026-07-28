@@ -14,19 +14,24 @@ BUILD_ARGS := --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --buil
 .PHONY: build test lint fmt vet clean image dist dist-archive image-verify image-push
 
 build:
-	go build -ldflags "$(LDFLAGS)" -o bin/odoo-builder ./cmd/builder
+	go build -ldflags "$(LDFLAGS)" -o bin/odoo-builder ./cmd/odoo-builder
+	go build -ldflags "$(LDFLAGS)" -o bin/odoo-builder-engine ./cmd/odoo-builder-engine
 
 dist:
 	@mkdir -p bin/dist
 	@for pair in $(DIST_TARGETS); do \
 		os=$${pair%/*}; arch=$${pair#*/}; \
-		out=bin/dist/odoo-builder-$$os-$$arch; \
-		echo "building $$out"; \
-		GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o $$out ./cmd/builder; \
+		for bin in odoo-builder odoo-builder-engine; do \
+			out=bin/dist/$$bin-$$os-$$arch; \
+			echo "building $$out"; \
+			GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o $$out ./cmd/$$bin; \
+		done; \
 	done
 
 dist-archive: dist
-	@cd bin/dist && for f in odoo-builder-*; do tar -czf $$f.tar.gz $$f; done
+	@cd bin/dist && for os_arch in $$(for pair in $(DIST_TARGETS); do echo $${pair%/*}-$${pair#*/}; done); do \
+		tar -czf odoo-builder-$$os_arch.tar.gz odoo-builder-$$os_arch odoo-builder-engine-$$os_arch; \
+	done
 	@cd bin/dist && sha256sum *.tar.gz > checksums.txt
 
 image:

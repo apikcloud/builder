@@ -11,7 +11,7 @@ import (
 )
 
 func newPrepareCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "prepare",
 		Short: "Prepare the deterministic .build/ context",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -19,14 +19,21 @@ func newPrepareCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			result, err := newEngine().Prepare(engine.BuildRequest{RepoRoot: cwd})
+			mode, err := resolveModeFlag(cmd)
 			if err != nil {
 				return err
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "prepared build context at %s (%d addon(s))\n", result.BuildDir, result.AddonCount)
+			req := engine.BuildRequest{APIVersion: engine.APIVersion, Command: engine.CommandPrepare, RepoRoot: cwd}
+			resp, err := invokeEngine(cmd.Context(), mode, req, cmd.ErrOrStderr())
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "prepared build context at %s (%d addon(s))\n", resp.BuildDir, resp.AddonCount)
 			return nil
 		},
 	}
+	cmd.Flags().String("mode", "", modeFlagUsage)
+	return cmd
 }

@@ -11,7 +11,10 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
       -ldflags "-X github.com/apikcloud/odoo-builder/internal/version.Version=${VERSION} -X github.com/apikcloud/odoo-builder/internal/version.Commit=${COMMIT} -X github.com/apikcloud/odoo-builder/internal/version.Date=${DATE}" \
-      -o /out/odoo-builder ./cmd/builder
+      -o /out/odoo-builder-engine ./cmd/odoo-builder-engine
+# odoo-builder (the launcher) is intentionally NOT built into this image —
+# it never runs inside the container (see
+# thoughts/shared/plans/2026-07-28-two-binary-launcher-engine-split.md).
 
 FROM debian:bookworm-slim AS buildkit
 ARG BUILDKIT_VERSION=v0.20.2
@@ -36,9 +39,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=buildkit /usr/local/bin/buildctl /usr/local/bin/buildctl
 COPY --from=buildkit /usr/local/bin/buildkitd /usr/local/bin/buildkitd
-COPY --from=build /out/odoo-builder /usr/local/bin/odoo-builder
+COPY --from=build /out/odoo-builder-engine /usr/local/bin/odoo-builder-engine
 COPY image/buildkitd.toml /etc/buildkit/buildkitd.toml
 COPY image/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["build"]
