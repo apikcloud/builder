@@ -2,7 +2,7 @@
 # Install the latest odoo-builder release for this platform.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/apikcloud/odoo-builder/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/apikcloud/builder/main/install.sh | sh
 #
 # Env vars:
 #   VERSION      release tag to install, e.g. "v1.2.3" (default: latest)
@@ -11,7 +11,7 @@
 
 set -eu
 
-REPO="apikcloud/odoo-builder"
+REPO="apikcloud/builder"
 BIN_NAME="odoo-builder"
 
 log() { printf '%s\n' "$*" >&2; }
