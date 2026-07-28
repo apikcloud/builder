@@ -5,7 +5,7 @@ import "github.com/spf13/cobra"
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "builder",
+		Use:           "odoo-builder",
 		Short:         "Reproducible OCI image builder for Odoo deployments",
 		SilenceUsage:  true,
 		SilenceErrors: true,

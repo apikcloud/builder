@@ -1,6 +1,6 @@
 #!/bin/sh
 
-builder "$@"
+odoo-builder "$@"
 status=$?
 
 # The container always runs as root (buildkitd's OCI worker needs it for

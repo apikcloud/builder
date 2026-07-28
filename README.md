@@ -44,19 +44,29 @@ addons both at the repository root and under any included directory.
 
 No Dockerfile expected or wanted.
 
+## Install
+
+```
+curl -fsSL https://raw.githubusercontent.com/apikcloud/odoo-builder/main/install.sh | sh
+```
+
+Downloads the latest release binary for your platform (linux/amd64,
+linux/arm64), verifies its checksum, and installs it to `/usr/local/bin`
+(falls back to `~/.local/bin`). Set `VERSION=vX.Y.Z` to pin a release.
+
 ## CLI
 
 ```
-builder build      # build (and push/load) the image
-builder prepare    # produce the deterministic .build/ context only
-builder validate   # check repo layout, addons, packages.txt, odoo-builder.yaml
-builder inspect     # print the resolved BuildRequest without building
-builder version
+odoo-builder build      # build (and push/load) the image
+odoo-builder prepare    # produce the deterministic .build/ context only
+odoo-builder validate   # check repo layout, addons, packages.txt, odoo-builder.yaml
+odoo-builder inspect     # print the resolved BuildRequest without building
+odoo-builder version
 ```
 
 ### Engine Mode vs Launcher Mode
 
-`builder build` runs BuildKit either directly on the host (**Engine Mode**,
+`odoo-builder build` runs BuildKit either directly on the host (**Engine Mode**,
 if `buildctl`/`buildkitd` are on `PATH`) or inside the distributable builder
 image via Docker/Podman (**Launcher Mode**, using the exact pinned BuildKit
 version). Default is automatic (`--mode auto`); override with `--mode engine`
@@ -65,7 +75,7 @@ or `--mode launcher`, or the `ODOO_BUILDER_MODE` env var.
 ### `--load`: build straight into your local image store
 
 ```
-builder build --load
+odoo-builder build --load
 ```
 
 Builds and loads the image into the local Docker/Podman image store
@@ -139,7 +149,7 @@ order:
 ## Design principles
 
 * Convention over configuration.
-* Reproducible, deterministic builds — running `builder prepare` twice
+* Reproducible, deterministic builds — running `odoo-builder prepare` twice
   produces identical output.
 * No Dockerfile required; BuildKit is an implementation detail.
 * The builder image is the product; the local CLI is only a thin launcher.

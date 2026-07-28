@@ -3,7 +3,7 @@
 // buildkitd installed, or because internal/buildkit detected they can't
 // actually run there (see buildkit.ErrRootlessRequired) — and also loads a
 // build's local docker-archive output into the host's Docker/Podman image
-// store (builder build --load, see Load). It is the only package that
+// store (odoo-builder build --load, see Load). It is the only package that
 // shells out to docker/podman.
 package launcher
 
@@ -25,7 +25,7 @@ const ImageEnvVar = "ODOO_BUILDER_IMAGE"
 // binaries on PATH.
 var lookPath = exec.LookPath
 
-// Needed reports whether builder build must go straight to running the
+// Needed reports whether odoo-builder build must go straight to running the
 // distributable image because the required binaries aren't even present:
 // true unless both buildctl and buildkitd are found on PATH. This does
 // NOT detect "present but can't run" (e.g. buildkitd needing RootlessKit)
