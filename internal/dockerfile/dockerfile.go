@@ -39,7 +39,11 @@ func Generate(baseImage string, cfg *config.Config, hasRequirements, hasPackages
 	if hasPackages {
 		b.WriteString("\nCOPY packages.txt /tmp/packages.txt\n")
 		b.WriteString("RUN DEBIAN_FRONTEND=noninteractive apt-get update \\\n")
-		b.WriteString("    && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \\\n")
+		// packages.txt may contain blank lines and "#"-prefixed comments
+		// (internal/prepare/validate.go's validatePackagesTxt allows them);
+		// grep strips both before xargs sees the file, otherwise a comment
+		// line would be passed to apt-get install as a bogus package name.
+		b.WriteString("    && grep -vE '^[[:space:]]*(#|$)' /tmp/packages.txt | xargs apt-get install -y --no-install-recommends \\\n")
 		b.WriteString("    && rm -rf /var/lib/apt/lists/*\n")
 	}
 

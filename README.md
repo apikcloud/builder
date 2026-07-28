@@ -70,7 +70,7 @@ repo/
 ├── .third-party/
 │    └── OCA/some-repo/      # git submodule
 ├── requirements.txt         # optional — pip install -r requirements.txt
-├── packages.txt             # optional — one Debian package per line
+├── packages.txt             # optional — one Debian package per line, blank lines/#comments allowed
 ├── odoo_version.txt         # optional — base image ref, if odoo-builder.yaml's base.version is unset
 ├── odoo-builder.yaml        # optional — advanced configuration
 └── .gitmodules               # optional

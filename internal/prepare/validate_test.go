@@ -61,6 +61,27 @@ func TestValidate_MalformedPackagesTxt_ReturnsError(t *testing.T) {
 	assert.Contains(t, errs[0].Error(), "packages.txt")
 }
 
+func TestValidate_PackagesTxtCommentsAndBlankLines_NoError(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "packages.txt"),
+		[]byte("# packages.txt\n\nwkhtmltopdf\n# another comment\ngit\n"), 0o644))
+	writeOdooVersion(t, root)
+
+	errs := prepare.Validate(root)
+	assert.Empty(t, errs)
+}
+
+func TestValidate_PackagesTxtOnlyCommentsAndBlanks_NoError(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "packages.txt"), []byte("# packages.txt\n\n"), 0o644))
+	writeOdooVersion(t, root)
+
+	errs := prepare.Validate(root)
+	assert.Empty(t, errs)
+}
+
 func TestValidate_MalformedImageName_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))

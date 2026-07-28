@@ -6,7 +6,7 @@ USER root
 
 COPY packages.txt /tmp/packages.txt
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
-    && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \
+    && grep -vE '^[[:space:]]*(#|$)' /tmp/packages.txt | xargs apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt

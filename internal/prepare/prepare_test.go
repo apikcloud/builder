@@ -114,6 +114,23 @@ func TestPrepare_EmptyPackagesTxt_OmitsAptBlock(t *testing.T) {
 	assert.NotContains(t, string(dockerfileContent), "apt-get")
 }
 
+func TestPrepare_CommentOnlyPackagesTxt_OmitsAptBlock(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "packages.txt"), []byte("# packages.txt\n\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	dockerfileContent, err := os.ReadFile(filepath.Join(buildDir, "Dockerfile"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(dockerfileContent), "packages.txt")
+	assert.NotContains(t, string(dockerfileContent), "apt-get")
+}
+
 func TestPrepare_EmptyRequirementsTxt_OmitsPipBlock(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))

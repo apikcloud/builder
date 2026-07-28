@@ -108,7 +108,7 @@ func validatePackagesTxt(repoRoot string) error {
 	for scanner.Scan() {
 		lineNo++
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 		if strings.ContainsAny(line, " \t") {
@@ -133,7 +133,11 @@ func fileExists(path string) bool {
 }
 
 // hasNonBlankLine reports whether path exists and contains at least one
-// non-blank line.
+// line that is neither blank nor a "#" comment (both requirements.txt's
+// pip syntax and packages.txt's convention, see validatePackagesTxt, treat
+// "#"-prefixed lines as comments) — so a file containing only blank lines
+// and/or comments is treated the same as an empty or absent one, and
+// Generate skips the COPY/RUN step for it entirely.
 func hasNonBlankLine(path string) bool {
 	f, err := os.Open(path)
 	if err != nil {
@@ -143,7 +147,8 @@ func hasNonBlankLine(path string) bool {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		if strings.TrimSpace(scanner.Text()) != "" {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
 			return true
 		}
 	}

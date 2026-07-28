@@ -42,7 +42,7 @@ func TestGenerate_WithPackages(t *testing.T) {
 	assert.Contains(t, out, "COPY packages.txt /tmp/packages.txt\n")
 	assert.Contains(t, out, "USER root\n")
 	assert.Contains(t, out, "RUN DEBIAN_FRONTEND=noninteractive apt-get update \\\n")
-	assert.Contains(t, out, "    && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \\\n")
+	assert.Contains(t, out, "    && grep -vE '^[[:space:]]*(#|$)' /tmp/packages.txt | xargs apt-get install -y --no-install-recommends \\\n")
 	assert.Contains(t, out, "    && rm -rf /var/lib/apt/lists/*\n")
 	assert.Contains(t, out, "USER odoo\n")
 	assert.NotContains(t, out, "requirements.txt")
