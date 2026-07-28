@@ -18,7 +18,7 @@ import (
 
 // DefaultImage is the distributable odoo-builder image run when the host
 // can't run BuildKit directly. Overridable via ImageEnvVar.
-const DefaultImage = "ghcr.io/apikcloud/odoo-builder"
+const DefaultImage = "docker.io/apik/odoo-builder"
 
 // ImageEnvVar, when set, overrides DefaultImage (including its tag).
 const ImageEnvVar = "ODOO_BUILDER_IMAGE"
