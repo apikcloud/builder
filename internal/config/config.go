@@ -1,7 +1,7 @@
-// Package config parses the optional builder.yaml file.
+// Package config parses the optional odoo-builder.yaml file.
 package config
 
-// Config is the full builder.yaml schema. Every field is optional;
+// Config is the full odoo-builder.yaml schema. Every field is optional;
 // see Default for the zero-configuration behavior.
 type Config struct {
 	Base        Base              `yaml:"base"`
@@ -22,6 +22,13 @@ type Base struct {
 
 type Enterprise struct {
 	Enabled bool `yaml:"enabled"`
+	// Commit pins Enterprise addons to an exact commit SHA, bypassing
+	// branch/date resolution entirely. Takes priority over Date.
+	Commit string `yaml:"commit"`
+	// Date overrides which day to resolve the newest Enterprise commit
+	// against (YYYYMMDD, same format as base.release). Defaults to
+	// base.release when unset.
+	Date string `yaml:"date"`
 }
 
 type Addons struct {
@@ -53,8 +60,8 @@ type Image struct {
 	Tag  string `yaml:"tag"`
 }
 
-// Default returns the configuration used when no builder.yaml is present
-// (or as the base that a present builder.yaml is merged over).
+// Default returns the configuration used when no odoo-builder.yaml is present
+// (or as the base that a present odoo-builder.yaml is merged over).
 func Default() *Config {
 	return &Config{
 		Addons: Addons{

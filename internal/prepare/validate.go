@@ -17,14 +17,14 @@ import (
 	"github.com/apikcloud/odoo-builder/internal/registry"
 )
 
-// Validate checks repoRoot's layout, builder.yaml syntax (if present),
+// Validate checks repoRoot's layout, odoo-builder.yaml syntax (if present),
 // packages.txt syntax (if present), and addon discovery problems
 // (duplicates, broken symlinks, invalid manifests). It aggregates every
 // problem found rather than stopping at the first one.
 func Validate(repoRoot string) []error {
 	var errs []error
 
-	cfg, cfgErr := config.Load(filepath.Join(repoRoot, "builder.yaml"))
+	cfg, cfgErr := config.Load(filepath.Join(repoRoot, "odoo-builder.yaml"))
 	if cfgErr != nil {
 		errs = append(errs, cfgErr)
 		cfg = config.Default()
@@ -41,8 +41,8 @@ func Validate(repoRoot string) []error {
 	}
 
 	if cfg.Enterprise.Enabled {
-		if cfg.Base.Version == "" {
-			errs = append(errs, fmt.Errorf("validate: enterprise.enabled requires base.version to be set (to select the matching Enterprise branch)"))
+		if cfg.Base.Version == "" && cfg.Enterprise.Commit == "" {
+			errs = append(errs, fmt.Errorf("validate: enterprise.enabled requires base.version to be set (to select the matching Enterprise branch), unless enterprise.commit pins an exact commit"))
 		}
 		if os.Getenv(enterprise.TokenEnvVar) == "" {
 			errs = append(errs, fmt.Errorf("validate: enterprise.enabled requires %s to be set", enterprise.TokenEnvVar))

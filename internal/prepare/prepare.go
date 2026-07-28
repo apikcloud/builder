@@ -14,11 +14,16 @@ import (
 	"github.com/apikcloud/odoo-builder/internal/workspace"
 )
 
-// EnterpriseCloneFunc matches enterprise.Clone's signature. Prepare calls it
-// through this exported variable so tests can point it at a local fixture
-// instead of the real Enterprise repository; production code never
-// reassigns it.
-var EnterpriseCloneFunc = enterprise.Clone
+// EnterpriseCloneFunc, EnterpriseResolveCommitFunc, and
+// EnterpriseDownloadFunc match enterprise.Clone/ResolveCommit/Download's
+// signatures. Prepare calls them through these exported variables so tests
+// can point them at a local fixture instead of the real Enterprise
+// repository/GitHub API; production code never reassigns them.
+var (
+	EnterpriseCloneFunc         = enterprise.Clone
+	EnterpriseResolveCommitFunc = enterprise.ResolveCommit
+	EnterpriseDownloadFunc      = enterprise.Download
+)
 
 // Prepare builds the deterministic build context for repoRoot at buildDir
 // and returns the number of addons discovered and flattened.
@@ -67,7 +72,31 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 	var enterpriseAddons []addons.Addon
 	if cfg.Enterprise.Enabled {
 		token := os.Getenv(enterprise.TokenEnvVar)
-		entDir, cleanup, cloneErr := EnterpriseCloneFunc(enterprise.RepoURL, cfg.Base.Version, token)
+
+		var (
+			entDir   string
+			cleanup  func()
+			cloneErr error
+		)
+		switch {
+		case cfg.Enterprise.Commit != "":
+			// Explicit override: an exact commit wins over any date/branch
+			// resolution, and needs no base.version at all.
+			entDir, cleanup, cloneErr = EnterpriseDownloadFunc(cfg.Enterprise.Commit, token)
+		case enterpriseResolveDate(cfg) != "":
+			// Reproducible default: pin Enterprise addons to the same day
+			// as the community base image (base.release), or an explicit
+			// enterprise.date override, instead of the branch's tip.
+			var sha string
+			sha, cloneErr = EnterpriseResolveCommitFunc(cfg.Base.Version, enterpriseResolveDate(cfg), token)
+			if cloneErr == nil {
+				entDir, cleanup, cloneErr = EnterpriseDownloadFunc(sha, token)
+			}
+		default:
+			// No date available to pin against: fall back to the branch
+			// tip, same as before date-based resolution existed.
+			entDir, cleanup, cloneErr = EnterpriseCloneFunc(enterprise.RepoURL, cfg.Base.Version, token)
+		}
 		if cloneErr != nil {
 			return 0, cloneErr
 		}
@@ -124,4 +153,14 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 	}
 
 	return len(discovered) + len(enterpriseAddons), nil
+}
+
+// enterpriseResolveDate returns the date Enterprise addons should be
+// pinned to (YYYYMMDD): cfg.Enterprise.Date if set, else cfg.Base.Release,
+// else "" when neither is set (no date to pin against).
+func enterpriseResolveDate(cfg *config.Config) string {
+	if cfg.Enterprise.Date != "" {
+		return cfg.Enterprise.Date
+	}
+	return cfg.Base.Release
 }

@@ -41,12 +41,12 @@ func TestValidate_AddonOnlyAtRepoRoot_NoErrors(t *testing.T) {
 func TestValidate_MalformedBuilderYAML_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"), []byte("addons:\n  include: [unterminated\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("addons:\n  include: [unterminated\n"), 0o644))
 	writeOdooVersion(t, root)
 
 	errs := prepare.Validate(root)
 	require.Len(t, errs, 1)
-	assert.Contains(t, errs[0].Error(), "builder.yaml")
+	assert.Contains(t, errs[0].Error(), "odoo-builder.yaml")
 }
 
 func TestValidate_MalformedPackagesTxt_ReturnsError(t *testing.T) {
@@ -63,7 +63,7 @@ func TestValidate_MalformedPackagesTxt_ReturnsError(t *testing.T) {
 func TestValidate_MalformedImageName_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"), []byte("image:\n  name: \"bad name\"\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("image:\n  name: \"bad name\"\n"), 0o644))
 	writeOdooVersion(t, root)
 
 	errs := prepare.Validate(root)
@@ -89,7 +89,7 @@ func TestValidate_SkipManifestValidation_ToleratesInvalidManifestContent(t *test
 	dir := filepath.Join(root, "addons", "broken_module")
 	require.NoError(t, os.MkdirAll(dir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "__manifest__.py"), []byte("{'name': 'Broken'"), 0o644))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"), []byte("addons:\n  skip_manifest_validation: true\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("addons:\n  skip_manifest_validation: true\n"), 0o644))
 	writeOdooVersion(t, root)
 
 	errs := prepare.Validate(root)
@@ -130,11 +130,25 @@ func TestValidate_MalformedOdooVersionFile_ReturnsError(t *testing.T) {
 func TestValidate_EnterpriseEnabledNoBaseVersion_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"), []byte("enterprise:\n  enabled: true\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("enterprise:\n  enabled: true\n"), 0o644))
 
 	errs := prepare.Validate(root)
 	require.NotEmpty(t, errs)
 	assert.Contains(t, errors.Join(errs...).Error(), "base.version")
+}
+
+func TestValidate_EnterpriseEnabledWithCommit_NoBaseVersionRequired(t *testing.T) {
+	t.Setenv(enterprise.TokenEnvVar, "tok")
+
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("enterprise:\n  enabled: true\n  commit: deadbeef\n"), 0o644))
+	writeOdooVersion(t, root)
+
+	errs := prepare.Validate(root)
+	for _, e := range errs {
+		assert.NotContains(t, e.Error(), "base.version")
+	}
 }
 
 func TestValidate_EnterpriseEnabledNoToken_ReturnsError(t *testing.T) {
@@ -142,7 +156,7 @@ func TestValidate_EnterpriseEnabledNoToken_ReturnsError(t *testing.T) {
 
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"), []byte("enterprise:\n  enabled: true\nbase:\n  version: \"18.0\"\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"), []byte("enterprise:\n  enabled: true\nbase:\n  version: \"18.0\"\n"), 0o644))
 	writeOdooVersion(t, root)
 
 	errs := prepare.Validate(root)
@@ -153,7 +167,7 @@ func TestValidate_EnterpriseEnabledNoToken_ReturnsError(t *testing.T) {
 func TestValidate_InvalidPlatform_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"),
 		[]byte("build:\n  platform:\n    - linux/amd64\n    - amd64\n"), 0o644))
 	writeOdooVersion(t, root)
 
@@ -167,7 +181,7 @@ func TestValidate_InvalidPlatform_ReturnsError(t *testing.T) {
 func TestValidate_ValidPlatforms_NoErrors(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo-builder.yaml"),
 		[]byte("build:\n  platform:\n    - linux/amd64\n    - linux/arm64\n"), 0o644))
 	writeOdooVersion(t, root)
 

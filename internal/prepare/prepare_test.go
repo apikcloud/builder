@@ -85,7 +85,7 @@ func TestPrepare_BrokenSymlinkAddon_ReturnsError(t *testing.T) {
 }
 
 func TestPrepare_DuplicateAddon_ReturnsError(t *testing.T) {
-	cfg, err := config.Load("../../testdata/duplicates/builder.yaml")
+	cfg, err := config.Load("../../testdata/duplicates/odoo-builder.yaml")
 	require.NoError(t, err)
 
 	buildDir := filepath.Join(t.TempDir(), ".build")
@@ -182,6 +182,117 @@ func TestPrepare_Enterprise(t *testing.T) {
 	require.NoError(t, err, "enterprise addons must be copied under their own enterprise-addons/ directory")
 	_, err = os.Stat(filepath.Join(buildDir, "addons", "enterprise_addon"))
 	assert.True(t, os.IsNotExist(err), "enterprise addons must not also appear under addons/")
+}
+
+func TestPrepare_Enterprise_ExplicitCommit_SkipsDateAndCloneResolution(t *testing.T) {
+	entFixture := t.TempDir()
+	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
+
+	oldDownload, oldResolve, oldClone := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseCloneFunc
+	t.Cleanup(func() {
+		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseResolveCommitFunc = oldResolve
+		prepare.EnterpriseCloneFunc = oldClone
+	})
+
+	var downloadedCommit string
+	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
+		downloadedCommit = commit
+		return entFixture, func() {}, nil
+	}
+	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
+		t.Fatal("ResolveCommit must not be called when enterprise.commit is set")
+		return "", nil
+	}
+	prepare.EnterpriseCloneFunc = func(_, _, _ string) (string, func(), error) {
+		t.Fatal("Clone (branch tip) must not be called when enterprise.commit is set")
+		return "", nil, nil
+	}
+	t.Setenv(enterprise.TokenEnvVar, "tok")
+
+	cfg := config.Default()
+	cfg.Enterprise.Enabled = true
+	cfg.Enterprise.Commit = "deadbeef"
+	// Deliberately no base.version/base.release: an explicit commit must
+	// need neither.
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	count, err := prepare.Prepare("../../testdata/simple", buildDir, cfg)
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+	assert.Equal(t, "deadbeef", downloadedCommit)
+}
+
+func TestPrepare_Enterprise_DateResolvesCommitBeforeDownloading(t *testing.T) {
+	entFixture := t.TempDir()
+	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
+
+	oldDownload, oldResolve, oldClone := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseCloneFunc
+	t.Cleanup(func() {
+		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseResolveCommitFunc = oldResolve
+		prepare.EnterpriseCloneFunc = oldClone
+	})
+
+	var resolvedBranch, resolvedDate, downloadedCommit string
+	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
+		resolvedBranch, resolvedDate = branch, date
+		return "resolvedsha", nil
+	}
+	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
+		downloadedCommit = commit
+		return entFixture, func() {}, nil
+	}
+	prepare.EnterpriseCloneFunc = func(_, _, _ string) (string, func(), error) {
+		t.Fatal("Clone (branch tip) must not be called when a date is resolvable")
+		return "", nil, nil
+	}
+	t.Setenv(enterprise.TokenEnvVar, "tok")
+
+	cfg := config.Default()
+	cfg.Enterprise.Enabled = true
+	cfg.Base.Version = "18.0"
+	cfg.Base.Release = "20250611"
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	count, err := prepare.Prepare("../../testdata/simple", buildDir, cfg)
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+	assert.Equal(t, "18.0", resolvedBranch)
+	assert.Equal(t, "20250611", resolvedDate, "must default to base.release when enterprise.date is unset")
+	assert.Equal(t, "resolvedsha", downloadedCommit)
+}
+
+func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
+	entFixture := t.TempDir()
+	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
+
+	oldDownload, oldResolve := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc
+	t.Cleanup(func() {
+		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseResolveCommitFunc = oldResolve
+	})
+
+	var resolvedDate string
+	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
+		resolvedDate = date
+		return "resolvedsha", nil
+	}
+	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
+		return entFixture, func() {}, nil
+	}
+	t.Setenv(enterprise.TokenEnvVar, "tok")
+
+	cfg := config.Default()
+	cfg.Enterprise.Enabled = true
+	cfg.Base.Version = "18.0"
+	cfg.Base.Release = "20250611"
+	cfg.Enterprise.Date = "20250101"
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare("../../testdata/simple", buildDir, cfg)
+	require.NoError(t, err)
+	assert.Equal(t, "20250101", resolvedDate)
 }
 
 func TestPrepare_EnterpriseTokenMissing_ReturnsError(t *testing.T) {
