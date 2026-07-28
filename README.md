@@ -4,6 +4,43 @@ Reproducible OCI image builder for Odoo deployments. Give it a repository of
 addons, get back a container image — no Dockerfile to write, works the same
 on Docker, Podman, Kubernetes Jobs, and CI.
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/apikcloud/builder/main/install.sh | sh
+```
+
+Downloads the latest release binary for your platform (linux/amd64,
+linux/arm64), verifies its checksum, and installs it to `/usr/local/bin`
+(falls back to `~/.local/bin`). Set `VERSION=vX.Y.Z` to pin a release.
+
+## Quick start
+
+```bash
+cd your-addons-repo
+odoo-builder build
+```
+
+Zero-config: builds a local OCI-layout tarball at `.build/image.oci.tar`.
+
+To push to a registry (the common case), set `image.name` in
+`odoo-builder.yaml`:
+
+```yaml
+image:
+  name: registry.example.com/customer/odoo
+  tag: production
+```
+
+```bash
+odoo-builder build
+```
+
+Same command — setting `image.name` is what makes it push. See
+[odoo-builder.yaml](#odoo-builderyaml) below for the full config (base
+version, Enterprise, `--load` into a local Docker/Podman instead of
+pushing, etc.).
+
 ## What it does
 
 ```
@@ -24,7 +61,7 @@ Custom addons live at the repository root. Third-party addons (OCA, vendors,
 ...) are git submodules under `.third-party/<owner>/<repo>`, exposed via a
 symlink at the repository root pointing into the submodule — never copied in.
 
-```
+```bash
 repo/
 ├── module_a/                # custom addon
 ├── module_b/
@@ -44,19 +81,11 @@ addons both at the repository root and under any included directory.
 
 No Dockerfile expected or wanted.
 
-## Install
 
-```
-curl -fsSL https://raw.githubusercontent.com/apikcloud/odoo-builder/main/install.sh | sh
-```
-
-Downloads the latest release binary for your platform (linux/amd64,
-linux/arm64), verifies its checksum, and installs it to `/usr/local/bin`
-(falls back to `~/.local/bin`). Set `VERSION=vX.Y.Z` to pin a release.
 
 ## CLI
 
-```
+```bash
 odoo-builder build      # build (and push/load) the image
 odoo-builder prepare    # produce the deterministic .build/ context only
 odoo-builder validate   # check repo layout, addons, packages.txt, odoo-builder.yaml
@@ -74,7 +103,7 @@ or `--mode launcher`, or the `ODOO_BUILDER_MODE` env var.
 
 ### `--load`: build straight into your local image store
 
-```
+```bash
 odoo-builder build --load
 ```
 
