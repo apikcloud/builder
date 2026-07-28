@@ -32,6 +32,21 @@ var rootlessMarkers = []string{
 	"RootlessKit",
 }
 
+// buildkitdRunDirBase returns the directory ensureDaemon uses for one
+// buildkitd invocation's --root/socket: ODOO_BUILDER_BUILDKITD_ROOT if
+// set — already created and bind-mounted host-side by
+// internal/launcher.invokeContainer's hostBuildkitdRootDir, specifically
+// so it is NOT on the container's own overlay filesystem (see
+// ensureDaemon's doc comment) — otherwise a fresh os.MkdirTemp (bare-host
+// Engine Mode, or odoo-builder-engine invoked directly with no launcher
+// involved at all, e.g. a Kubernetes Job).
+func buildkitdRunDirBase() (string, error) {
+	if dir := os.Getenv("ODOO_BUILDER_BUILDKITD_ROOT"); dir != "" {
+		return dir, nil
+	}
+	return os.MkdirTemp("", "odoo-builder-buildkitd-")
+}
+
 // ensureDaemon returns a BUILDKIT_HOST-style address reachable for the
 // duration of one build, plus a cleanup func to call afterwards.
 //
@@ -40,14 +55,31 @@ var rootlessMarkers = []string{
 // inside the future distributable image) is assumed. Otherwise a
 // buildkitd process is spawned on a fresh temporary unix socket and torn
 // down by cleanup once the build completes.
+//
+// Its run directory comes from buildkitdRunDirBase, which defaults to a
+// plain os.MkdirTemp — fine for invokeLocal's bare-host Engine Mode, where
+// nothing here is nested inside another container. Inside
+// invokeContainer's containerized Engine Mode, that default directory
+// sits on the container's own overlay-filesystem writable layer, and
+// BuildKit's snapshotter auto-detection refuses to nest
+// overlayfs-on-overlayfs — it silently falls back to the "native"
+// snapshotter (real per-file copies instead of copy-on-write mounts),
+// dramatically slower extracting large/many-file layers.
+// ODOO_BUILDER_BUILDKITD_ROOT (set by invokeContainer, bind-mounting a
+// host directory to it) routes around this: a bind-mounted directory is
+// never itself an overlayfs mount, so BuildKit picks the real "overlayfs"
+// snapshotter instead. Confirmed directly against this image's own
+// buildkitd: --root under the container's default /tmp logs "auto
+// snapshotter: using native"; --root under a bind-mounted directory logs
+// "auto snapshotter: using overlayfs".
 func ensureDaemon(ctx context.Context) (addr string, cleanup func(), err error) {
 	if h := os.Getenv("BUILDKIT_HOST"); h != "" {
 		return h, func() {}, nil
 	}
 
-	runDir, err := os.MkdirTemp("", "odoo-builder-buildkitd-")
+	runDir, err := buildkitdRunDirBase()
 	if err != nil {
-		return "", nil, fmt.Errorf("buildkit: creating buildkitd run dir: %w", err)
+		return "", nil, fmt.Errorf("buildkit: resolving buildkitd run dir: %w", err)
 	}
 
 	sockPath := filepath.Join(runDir, "buildkitd.sock")

@@ -122,6 +122,18 @@ func TestInvoke_ModeEngine_RequiresEngineBinaryOnPath(t *testing.T) {
 	assert.Contains(t, err.Error(), EngineBinary)
 }
 
+func TestHostBuildkitdRootDir(t *testing.T) {
+	dir, cleanup := hostBuildkitdRootDir()
+	require.NotEmpty(t, dir)
+	_, err := os.Stat(dir)
+	require.NoError(t, err)
+
+	cleanup()
+
+	_, err = os.Stat(dir)
+	assert.True(t, os.IsNotExist(err))
+}
+
 func TestInvoke_ModeEngine_DoesNotRetryOnRootless(t *testing.T) {
 	withFakeEngineOnPath(t)
 

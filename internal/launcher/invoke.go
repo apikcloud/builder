@@ -115,7 +115,13 @@ func invokeContainer(ctx context.Context, req engine.BuildRequest, stderr io.Wri
 	hostCacheDir, cacheEnv := hostCacheDirIfResolvable()
 	env = append(env, cacheEnv...)
 
-	args := BuildArgs(ImageRef(), req.RepoRoot, dockerConfigDir, hostCacheDir, env, nil)
+	hostBuildkitRootDir, rootCleanup := hostBuildkitdRootDir()
+	defer rootCleanup()
+	if hostBuildkitRootDir != "" {
+		env = append(env, "ODOO_BUILDER_BUILDKITD_ROOT=/host-buildkit-root")
+	}
+
+	args := BuildArgs(ImageRef(), req.RepoRoot, dockerConfigDir, hostCacheDir, hostBuildkitRootDir, env, nil)
 	cmd := exec.CommandContext(ctx, string(runtime), args...)
 	cmd.Stdin = bytes.NewReader(reqJSON)
 	cmd.Stderr = stderr
@@ -187,6 +193,23 @@ func hostCacheDirIfResolvable() (string, []string) {
 		return "", nil
 	}
 	return dir, []string{"XDG_CACHE_HOME=/host-cache"}
+}
+
+// hostBuildkitdRootDir creates a fresh, exclusive-to-this-build host
+// directory for buildkitd's own --root/socket (see
+// buildkit.ensureDaemon's doc comment for why this needs to be a
+// bind-mounted host path rather than a directory inside the container's
+// own overlay filesystem), and a cleanup func that removes it once the
+// build completes. Returns ("", a no-op cleanup) if the directory can't
+// be created — the build still proceeds, just without this speedup
+// (buildkitd falls back to its own default, container-local temp
+// directory, and the slower "native" snapshotter that comes with it).
+func hostBuildkitdRootDir() (string, func()) {
+	dir, err := os.MkdirTemp("", "odoo-builder-buildkitd-root-")
+	if err != nil {
+		return "", func() {}
+	}
+	return dir, func() { os.RemoveAll(dir) }
 }
 
 // hostIDEnv returns "HOST_UID=<uid>"/"HOST_GID=<gid>" entries for uid/gid

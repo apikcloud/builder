@@ -35,14 +35,20 @@ func ForwardedEnv() []string {
 // XDG_CACHE_HOME=/host-cache entry in env (added by Run) so the
 // containerized builder's own buildkit.DefaultCacheDir() call resolves
 // onto this host-backed directory instead of the container's own,
-// discarded-on-exit filesystem. env entries (as returned by
+// discarded-on-exit filesystem. If hostBuildkitRootDir is non-empty, it is
+// mounted read-write at /host-buildkit-root — paired with an
+// ODOO_BUILDER_BUILDKITD_ROOT=/host-buildkit-root entry in env so
+// buildkitd's own --root lands on this bind-mounted host directory
+// instead of the container's own overlay filesystem, letting BuildKit use
+// its real overlayfs snapshotter instead of the slow native fallback (see
+// buildkit.ensureDaemon's doc comment). env entries (as returned by
 // ForwardedEnv/hostIDEnv) become "-e" flags. args are appended last,
 // forwarded to the image's entrypoint.
 //
 // Pure: performs no I/O and has no dependency on the real filesystem or
 // PATH, so it is exhaustively unit-testable without docker/podman
 // installed.
-func BuildArgs(image, workspace, dockerConfigDir, hostCacheDir string, env, args []string) []string {
+func BuildArgs(image, workspace, dockerConfigDir, hostCacheDir, hostBuildkitRootDir string, env, args []string) []string {
 	out := []string{"run", "--rm", "--privileged", "-i",
 		"-v", workspace + ":/workspace",
 		"-w", "/workspace",
@@ -52,6 +58,9 @@ func BuildArgs(image, workspace, dockerConfigDir, hostCacheDir string, env, args
 	}
 	if hostCacheDir != "" {
 		out = append(out, "-v", hostCacheDir+":/host-cache/odoo-builder")
+	}
+	if hostBuildkitRootDir != "" {
+		out = append(out, "-v", hostBuildkitRootDir+":/host-buildkit-root")
 	}
 	for _, e := range env {
 		out = append(out, "-e", e)
