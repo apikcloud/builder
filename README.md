@@ -159,6 +159,11 @@ build:
 
 cache:
   enabled: true
+  # type: local     # optional — "local" (on-disk dir) or "registry"
+  #                 # (<image.name>:buildcache). Defaults to "registry"
+  #                 # when image.name is set, "local" otherwise; set
+  #                 # explicitly to keep caching locally while still
+  #                 # pushing the built image to a registry.
 
 image:
   name: registry.example.com/customer/odoo

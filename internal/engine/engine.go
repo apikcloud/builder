@@ -168,14 +168,30 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 
 	var cacheDir, cacheRef string
 	if cfg.Cache.Enabled {
-		if cfg.Image.Name != "" {
-			cacheRef = registry.Reference(cfg.Image.Name, "buildcache")
-		} else {
+		switch cfg.Cache.Type {
+		case "local":
 			var cacheErr error
 			cacheDir, cacheErr = buildkit.DefaultCacheDir()
 			if cacheErr != nil {
 				return BuildResult{}, cacheErr
 			}
+		case "registry":
+			if cfg.Image.Name == "" {
+				return BuildResult{}, fmt.Errorf("engine: cache.type \"registry\" requires image.name to be set")
+			}
+			cacheRef = registry.Reference(cfg.Image.Name, "buildcache")
+		case "":
+			if cfg.Image.Name != "" {
+				cacheRef = registry.Reference(cfg.Image.Name, "buildcache")
+			} else {
+				var cacheErr error
+				cacheDir, cacheErr = buildkit.DefaultCacheDir()
+				if cacheErr != nil {
+					return BuildResult{}, cacheErr
+				}
+			}
+		default:
+			return BuildResult{}, fmt.Errorf("engine: unknown cache.type %q (must be \"local\" or \"registry\")", cfg.Cache.Type)
 		}
 	}
 

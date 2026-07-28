@@ -292,6 +292,48 @@ func TestEngine_Build_Cache(t *testing.T) {
 		assert.Equal(t, "registry.example.com/customer/odoo:buildcache", runner.opts.CacheRef)
 		assert.Empty(t, runner.opts.CacheDir)
 	})
+
+	t.Run("cache.type local forces local cache dir even with image.name set", func(t *testing.T) {
+		repoDir := t.TempDir()
+		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
+			[]byte("cache:\n  enabled: true\n  type: local\nimage:\n  name: registry.example.com/customer/odoo\n"), 0o644))
+
+		runner := &fakeRunner{}
+		e := &Engine{Runner: runner}
+
+		_, err := e.Build(context.Background(), BuildRequest{RepoRoot: repoDir})
+		require.NoError(t, err)
+
+		assert.True(t, strings.HasSuffix(runner.opts.CacheDir, filepath.Join("odoo-builder", "buildkit-cache")), runner.opts.CacheDir)
+		assert.Empty(t, runner.opts.CacheRef)
+	})
+
+	t.Run("cache.type registry without image.name errors", func(t *testing.T) {
+		repoDir := t.TempDir()
+		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
+			[]byte("cache:\n  enabled: true\n  type: registry\n"), 0o644))
+
+		e := &Engine{Runner: &fakeRunner{}}
+
+		_, err := e.Build(context.Background(), BuildRequest{RepoRoot: repoDir})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cache.type")
+	})
+
+	t.Run("unknown cache.type errors", func(t *testing.T) {
+		repoDir := t.TempDir()
+		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
+			[]byte("cache:\n  enabled: true\n  type: bogus\n"), 0o644))
+
+		e := &Engine{Runner: &fakeRunner{}}
+
+		_, err := e.Build(context.Background(), BuildRequest{RepoRoot: repoDir})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `unknown cache.type "bogus"`)
+	})
 }
 
 func TestEngine_Build_Platforms(t *testing.T) {

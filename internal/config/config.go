@@ -54,6 +54,14 @@ type Build struct {
 
 type Cache struct {
 	Enabled bool `yaml:"enabled"`
+	// Type picks which BuildKit cache backend to use when Enabled: "local"
+	// (an on-disk directory, buildkit.DefaultCacheDir) or "registry" (an
+	// OCI ref derived from image.name, "<image.name>:buildcache"). Empty
+	// (the default) keeps the historical behavior: registry cache whenever
+	// image.name is set, local cache otherwise — set explicitly to force
+	// one or the other regardless of image.name, e.g. to keep pushing to a
+	// registry while still caching locally.
+	Type string `yaml:"type"`
 }
 
 type Image struct {
