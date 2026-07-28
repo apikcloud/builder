@@ -2,6 +2,14 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.4.2] - 2026-07-28
+
+A speed fix under the hood for anyone building inside the container image.
+
+### 🔄 Improvements
+
+- Builds run inside the odoo-builder container image now extract layers much faster — especially noticeable with large base images (like Odoo Enterprise). No changes needed on your end.
+
 ## [0.4.1] - 2026-07-28
 
 Small fix for anyone documenting their `packages.txt`.

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-07-28
+
+### Performance
+
+- Containerized builds now route `buildkitd`'s own `--root` through a bind-mounted host directory instead of the container's own overlay filesystem, letting BuildKit use its `overlayfs` snapshotter instead of falling back to the much slower `native` one — sharply reducing layer extraction/commit time for large base images
+
 ## [0.4.1] - 2026-07-28
 
 ### Fixed
