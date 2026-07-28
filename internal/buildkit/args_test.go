@@ -30,3 +30,7 @@ func TestPlatformArgs(t *testing.T) {
 	assert.Equal(t, []string{"--opt", "platform=linux/amd64"}, platformArgs([]string{"linux/amd64"}))
 	assert.Equal(t, []string{"--opt", "platform=linux/amd64,linux/arm64"}, platformArgs([]string{"linux/amd64", "linux/arm64"}))
 }
+
+func TestImageResolveModeArgs(t *testing.T) {
+	assert.Equal(t, []string{"--opt", "image-resolve-mode=local"}, imageResolveModeArgs())
+}

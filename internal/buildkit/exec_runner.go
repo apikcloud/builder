@@ -67,6 +67,7 @@ func (execRunner) Build(ctx context.Context, opts BuildOptions) (BuildOutput, er
 	}
 	args = append(args, platformArgs(opts.Platforms)...)
 	args = append(args, cacheArgs(opts.CacheRef, opts.CacheDir)...)
+	args = append(args, imageResolveModeArgs()...)
 
 	cmd := exec.CommandContext(ctx, "buildctl", args...)
 	// buildctl's live build-progress output is routed to stderr, not

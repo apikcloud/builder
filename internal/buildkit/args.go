@@ -36,3 +36,16 @@ func platformArgs(platforms []string) []string {
 	}
 	return []string{"--opt", "platform=" + strings.Join(platforms, ",")}
 }
+
+// imageResolveModeArgs returns the dockerfile frontend's --opt
+// image-resolve-mode=local flag, unconditionally. FROM always resolves to
+// either odoo:<version>-<release> (internal/dockerfile/baseimage.go) or a
+// release-dated ref read from odoo_version.txt validated against
+// releaseDatePattern — both immutable by this tool's own design (README's
+// "reproducible, deterministic builds" principle: the same ref must always
+// mean the same image). "local" skips the registry manifest check
+// buildctl's default resolve mode otherwise does on every single build,
+// even when the referenced digest is already cached.
+func imageResolveModeArgs() []string {
+	return []string{"--opt", "image-resolve-mode=local"}
+}
