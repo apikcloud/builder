@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package dockerfile resolves the base image and renders the Dockerfile
 // content for a build context.
 package dockerfile

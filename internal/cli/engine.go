@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 package cli
 
 import "github.com/apikcloud/odoo-builder/internal/engine"

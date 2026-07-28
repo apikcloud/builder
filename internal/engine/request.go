@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package engine hosts the trigger-independent BuildRequest model and the
 // Engine that executes it. Every entry point (CLI today; a REST API,
 // Kubernetes Job, or CI integration later) builds the same BuildRequest and

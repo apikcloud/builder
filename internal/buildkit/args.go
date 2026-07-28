@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package buildkit (see runner.go) — this file holds the pure, side-effect-
 // free helpers that turn BuildOptions' cache/platform settings into
 // buildctl flags, kept separate from execRunner.Build so they are testable

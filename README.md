@@ -182,3 +182,7 @@ order:
   produces identical output.
 * No Dockerfile required; BuildKit is an implementation detail.
 * The builder image is the product; the local CLI is only a thin launcher.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

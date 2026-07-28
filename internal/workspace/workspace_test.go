@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 package workspace_test
 
 import (

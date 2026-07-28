@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Command builder is the odoo-builder CLI entrypoint.
 package main
 

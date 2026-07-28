@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package enterprise clones the Odoo Enterprise addons repository
 // (README.md's Enterprise Support section) host-side, before BuildKit is
 // ever invoked. It contains no BuildKit dependency: authentication happens

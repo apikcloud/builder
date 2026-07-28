@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package prepare orchestrates repository validation and build-context
 // preparation.
 package prepare

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package cli wires the builder CLI's Cobra commands.
 package cli
 

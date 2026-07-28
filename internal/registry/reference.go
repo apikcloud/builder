@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package registry resolves and validates the image references used when
 // BuildKit pushes to an OCI-compatible registry (README.md's Milestone 5).
 // It contains no authentication logic: buildctl resolves registry

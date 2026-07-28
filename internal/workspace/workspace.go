@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package workspace provides filesystem primitives for building a
 // deterministic .build/ context.
 package workspace

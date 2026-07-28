@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package config parses the optional odoo-builder.yaml file.
 package config
 

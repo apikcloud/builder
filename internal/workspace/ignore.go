@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 package workspace
 
 // DefaultIgnore lists paths excluded when copying a repository into a

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package addons discovers, validates, and flattens Odoo addon directories.
 package addons
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package launcher runs the distributable odoo-builder container image
 // via Docker or Podman — either because the host has no buildctl/
 // buildkitd installed, or because internal/buildkit detected they can't

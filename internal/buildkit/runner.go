@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package buildkit launches or reaches a BuildKit daemon and executes
 // builds against a prepared build context. It is the only package that
 // shells out to buildctl/buildkitd — callers depend only on the Runner

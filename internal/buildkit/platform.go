@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Package buildkit (see runner.go).
 package buildkit
 
