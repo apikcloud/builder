@@ -2,6 +2,14 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.4.1] - 2026-07-28
+
+Small fix for anyone documenting their `packages.txt`.
+
+### 🐛 Fixes
+
+- `packages.txt` now accepts blank lines and `#` comments, so you can document why a package is there without it being rejected as invalid.
+
 ## [0.4.0] - 2026-07-28
 
 Faster, more reliable builds: better caching control, and Ctrl+C actually works now.
