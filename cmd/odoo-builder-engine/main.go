@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/apikcloud/odoo-builder/internal/engine"
 	"github.com/apikcloud/odoo-builder/internal/version"
@@ -24,13 +26,24 @@ func main() {
 		return
 	}
 
+	// SIGINT/SIGTERM here — whether from the terminal's own foreground
+	// process-group delivery (invokeLocal) or forwarded by entrypoint.sh
+	// (invokeContainer) — cancels ctx, which internal/engine.Execute
+	// threads down to buildkit.Build's exec.CommandContext calls for
+	// buildctl/buildkitd. That's what makes the buildkitd cleanup() in
+	// buildkit.execRunner.Build actually run instead of buildkitd being
+	// orphaned mid-build (the "random printouts" the caller keeps seeing
+	// after Ctrl+C, until it finishes on its own).
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	req, err := readRequest()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "odoo-builder-engine: reading request: %v\n", err)
 		os.Exit(1)
 	}
 
-	resp := engine.New().Execute(context.Background(), req)
+	resp := engine.New().Execute(ctx, req)
 
 	if err := writeResponse(resp); err != nil {
 		fmt.Fprintf(os.Stderr, "odoo-builder-engine: writing response: %v\n", err)
