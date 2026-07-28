@@ -83,19 +83,24 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 		case cfg.Enterprise.Commit != "":
 			// Explicit override: an exact commit wins over any date/branch
 			// resolution, and needs no base.version at all.
+			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at pinned commit %s\n", cfg.Enterprise.Commit)
 			entDir, cleanup, cloneErr = EnterpriseDownloadFunc(cfg.Enterprise.Commit, token)
 		case enterpriseResolveDate(cfg) != "":
 			// Reproducible default: pin Enterprise addons to the same day
 			// as the community base image (base.release), or an explicit
 			// enterprise.date override, instead of the branch's tip.
+			date := enterpriseResolveDate(cfg)
+			fmt.Fprintf(os.Stderr, "odoo-builder: resolving Enterprise commit on branch %s as of %s\n", cfg.Base.Version, date)
 			var sha string
-			sha, cloneErr = EnterpriseResolveCommitFunc(cfg.Base.Version, enterpriseResolveDate(cfg), token)
+			sha, cloneErr = EnterpriseResolveCommitFunc(cfg.Base.Version, date, token)
 			if cloneErr == nil {
+				fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at commit %s\n", sha)
 				entDir, cleanup, cloneErr = EnterpriseDownloadFunc(sha, token)
 			}
 		default:
 			// No date available to pin against: fall back to the branch
 			// tip, same as before date-based resolution existed.
+			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons from branch %s (tip)\n", cfg.Base.Version)
 			entDir, cleanup, cloneErr = EnterpriseCloneFunc(enterprise.RepoURL, cfg.Base.Version, token)
 		}
 		if cloneErr != nil {
@@ -106,6 +111,7 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 		entAddons, entErrs := addons.DiscoverAt(entDir, cfg.Addons.Exclude, !cfg.Addons.SkipManifestValidation)
 		errs = append(errs, entErrs...)
 		enterpriseAddons = entAddons
+		fmt.Fprintf(os.Stderr, "odoo-builder: retrieved %d Enterprise addon(s)\n", len(entAddons))
 
 		combined := append(append([]addons.Addon{}, discovered...), entAddons...)
 		_, dupErrs := addons.Dedup(combined)

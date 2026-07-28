@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/apikcloud/odoo-builder/internal/buildkit"
 )
@@ -56,6 +57,7 @@ func (e *Engine) Execute(ctx context.Context, req BuildRequest) BuildResponse {
 		return resp
 
 	case CommandBuild:
+		printBuildSummary(req.Normalize())
 		result, err := e.Build(ctx, req)
 		if err != nil {
 			resp.Error = err.Error()
@@ -81,4 +83,22 @@ func (e *Engine) Execute(ctx context.Context, req BuildRequest) BuildResponse {
 		resp.ErrorCode = ErrorCodeUnknownCommand
 		return resp
 	}
+}
+
+// printBuildSummary writes a one-line-per-field summary of req to stderr
+// right before Engine.Build starts — a human watching the build knows what
+// was actually requested before BuildKit output (or Enterprise addon
+// retrieval, see prepare.Prepare) starts streaming.
+func printBuildSummary(req BuildRequest) {
+	fmt.Fprintf(os.Stderr, "odoo-builder: starting build (repoRoot=%s, buildDir=%s", req.RepoRoot, req.BuildDir)
+	if req.Load {
+		fmt.Fprint(os.Stderr, ", load=true")
+	}
+	if req.Output.Type != "" {
+		fmt.Fprintf(os.Stderr, ", outputType=%s", req.Output.Type)
+	}
+	if req.Output.Image != "" {
+		fmt.Fprintf(os.Stderr, ", outputImage=%s", req.Output.Image)
+	}
+	fmt.Fprintln(os.Stderr, ")")
 }
