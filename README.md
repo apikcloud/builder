@@ -114,6 +114,23 @@ writing its `BuildResponse` to `ODOO_BUILDER_RESPONSE_FILE` (or stdout). This
 is the integration path for Kubernetes Jobs and CI systems that run the
 container image directly rather than shelling out to the launcher.
 
+### Performance: install `buildctl`/`buildkitd` on the host if you can
+
+Engine Mode (running directly on the host, no container) is significantly
+faster than Launcher Mode: BuildKit's `--root` sits directly on the host's
+own filesystem, so its `overlayfs` snapshotter is used natively. Launcher
+Mode still routes `buildkitd`'s `--root` through a bind-mounted host
+directory for the same `overlayfs` benefit, but a containerized build
+still carries `docker`/`podman run` startup overhead, image pull/export
+steps, and one more layer of process indirection on top.
+
+If your host has `buildctl`/`buildkitd` installed (see [BuildKit's
+releases](https://github.com/moby/buildkit/releases)) and can run them
+directly (no `RootlessKit` required), `--mode auto` (the default) already
+prefers Engine Mode automatically — no configuration needed. Only hosts
+without `buildctl`/`buildkitd`, or where they refuse to start unprivileged
+(`buildkitd`'s own rootless requirement), fall back to Launcher Mode.
+
 ### `--load`: build straight into your local image store
 
 ```bash
