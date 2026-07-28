@@ -148,6 +148,41 @@ func TestPrepare_EmptyRequirementsTxt_OmitsPipBlock(t *testing.T) {
 	assert.NotContains(t, string(dockerfileContent), "pip install")
 }
 
+func TestPrepare_CommentOnlyRequirementsTxt_OmitsPipBlock(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "requirements.txt"), []byte("# requirements.txt\n\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	dockerfileContent, err := os.ReadFile(filepath.Join(buildDir, "Dockerfile"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(dockerfileContent), "requirements.txt")
+	assert.NotContains(t, string(dockerfileContent), "pip install")
+}
+
+func TestPrepare_RequirementsTxtWithComments_KeepsPipBlock(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "requirements.txt"), []byte("# top-level comment\nrequests==2.31.0\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	dockerfileContent, err := os.ReadFile(filepath.Join(buildDir, "Dockerfile"))
+	require.NoError(t, err)
+	// pip parses "#" comments in requirements.txt natively — unlike
+	// packages.txt's apt-get/xargs, no filtering is needed before install.
+	assert.Contains(t, string(dockerfileContent), "pip install --no-cache-dir -r /tmp/requirements.txt")
+}
+
 func TestPrepare_NoBaseVersion_ReturnsError(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
