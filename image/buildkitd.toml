@@ -1,0 +1,5 @@
+# Minimal buildkitd config for the odoo-builder distributable image.
+[worker.oci]
+  enabled = true
+[worker.containerd]
+  enabled = false
