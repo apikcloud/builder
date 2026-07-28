@@ -10,12 +10,12 @@ import (
 
 // resolveOutput fills in spec's remaining defaults, consulting cfg.
 //
-// Convention: when the caller leaves Type entirely unspecified, builder.yaml's
+// Convention: when the caller leaves Type entirely unspecified, odoo-builder.yaml's
 // image.name selects a registry push (image.tag defaults to "latest");
 // otherwise the build falls back to a local OCI-layout tarball under
 // buildDir. An explicit Type from the caller always wins over convention, so
 // a future API/CI adapter can override per-request without touching
-// builder.yaml — "docker" (used by `builder build --load`) is one such
+// odoo-builder.yaml — "docker" (used by `builder build --load`) is one such
 // explicit-only type, never selected by convention.
 func resolveOutput(spec OutputSpec, buildDir string, cfg *config.Config) (OutputSpec, error) {
 	if spec.Type == "" {
@@ -36,7 +36,7 @@ func resolveOutput(spec OutputSpec, buildDir string, cfg *config.Config) (Output
 	case "docker":
 		if spec.Image == "" {
 			if cfg.Image.Name == "" {
-				return OutputSpec{}, fmt.Errorf("engine: output type \"docker\" requires builder.yaml's image.name (or an explicit BuildRequest.Output.Image) — --load needs a tag to give the loaded image")
+				return OutputSpec{}, fmt.Errorf("engine: output type \"docker\" requires odoo-builder.yaml's image.name (or an explicit BuildRequest.Output.Image) — --load needs a tag to give the loaded image")
 			}
 			if err := registry.Validate(cfg.Image.Name); err != nil {
 				return OutputSpec{}, err
@@ -51,7 +51,7 @@ func resolveOutput(spec OutputSpec, buildDir string, cfg *config.Config) (Output
 	case "registry":
 		if spec.Image == "" {
 			if cfg.Image.Name == "" {
-				return OutputSpec{}, fmt.Errorf("engine: output type \"registry\" requires builder.yaml's image.name (or an explicit BuildRequest.Output.Image)")
+				return OutputSpec{}, fmt.Errorf("engine: output type \"registry\" requires odoo-builder.yaml's image.name (or an explicit BuildRequest.Output.Image)")
 			}
 			if err := registry.Validate(cfg.Image.Name); err != nil {
 				return OutputSpec{}, err

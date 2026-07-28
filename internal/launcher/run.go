@@ -14,7 +14,7 @@ import (
 // passing args to the image's entrypoint. When the host cache directory
 // (os.UserCacheDir()/odoo-builder) is resolvable and creatable, it is also
 // bind-mounted in (see BuildArgs' hostCacheDir) so the containerized
-// builder's local BuildKit cache (builder.yaml's cache.enabled with no
+// builder's local BuildKit cache (odoo-builder.yaml's cache.enabled with no
 // image.name) persists on the host across container-launcher runs instead
 // of being discarded with the container. stdout/stderr/stdin are streamed
 // through as-is. Returns the container's error (including a non-zero exit

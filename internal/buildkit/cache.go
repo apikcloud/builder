@@ -8,7 +8,7 @@ import (
 )
 
 // DefaultCacheDir returns the on-disk directory BuildKit's local cache
-// importer/exporter read from and write to when builder.yaml's
+// importer/exporter read from and write to when odoo-builder.yaml's
 // cache.enabled is true and no image.name is configured. It is a single
 // directory shared across every repository this builder processes:
 // BuildKit's cache entries are content-addressed, so sharing one directory

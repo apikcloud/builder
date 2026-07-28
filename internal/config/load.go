@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Load reads builder.yaml at path and merges it over Default(). If path
+// Load reads odoo-builder.yaml at path and merges it over Default(). If path
 // does not exist, Default() is returned unchanged.
 func Load(path string) (*Config, error) {
 	cfg := Default()

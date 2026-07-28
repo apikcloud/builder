@@ -3,7 +3,7 @@
 // ever invoked. It contains no BuildKit dependency: authentication happens
 // entirely within this package's own git subprocess, via GIT_ASKPASS, so
 // the credential never appears in a clone URL, a subprocess argument (and
-// therefore never in a process listing), a builder.yaml field, or any log
+// therefore never in a process listing), a odoo-builder.yaml field, or any log
 // line this package emits.
 package enterprise
 
@@ -19,7 +19,7 @@ import (
 const RepoURL = "https://github.com/odoo/enterprise.git"
 
 // TokenEnvVar is the environment variable holding the HTTPS token used to
-// authenticate against RepoURL. Never read from builder.yaml.
+// authenticate against RepoURL. Never read from odoo-builder.yaml.
 const TokenEnvVar = "ODOO_ENTERPRISE_TOKEN"
 
 // askpassScript is a POSIX-sh helper git invokes (via GIT_ASKPASS) whenever

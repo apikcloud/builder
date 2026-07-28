@@ -63,7 +63,7 @@ func (fakeRegistryRunner) Build(ctx context.Context, opts buildkit.BuildOptions)
 func TestBuildCmd_Success_RegistryPush(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 		[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 	oldWd, err := os.Getwd()
@@ -411,7 +411,7 @@ func (r *recordingLauncherLoad) load(ctx context.Context, runtime launcher.Runti
 func TestBuildCmd_Load_Success(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 		[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 	archivePath := filepath.Join(repoDir, ".build", "image.docker.tar")
@@ -544,7 +544,7 @@ func TestBuildCmd_Load_MissingImageName_ReturnsError(t *testing.T) {
 
 	err = cmd.RunE(cmd, nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "requires builder.yaml's image.name")
+	assert.Contains(t, err.Error(), "requires odoo-builder.yaml's image.name")
 	assert.False(t, detectCalled)
 	assert.False(t, recLoad.called)
 }
@@ -552,7 +552,7 @@ func TestBuildCmd_Load_MissingImageName_ReturnsError(t *testing.T) {
 func TestBuildCmd_Load_RunnerLoadFails_KeepsArchiveAndWrapsError(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 		[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 	archivePath := filepath.Join(repoDir, ".build", "image.docker.tar")
@@ -591,7 +591,7 @@ func TestBuildCmd_Load_RunnerLoadFails_KeepsArchiveAndWrapsError(t *testing.T) {
 func TestBuildCmd_Load_RootlessError_DoesNotFallBackToLauncher(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 		[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 	oldWd, err := os.Getwd()

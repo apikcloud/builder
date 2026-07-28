@@ -63,11 +63,11 @@ func (e *Engine) prepareWithConfig(req BuildRequest, cfg *config.Config) (Prepar
 }
 
 func loadConfig(req BuildRequest) (*config.Config, error) {
-	return config.Load(filepath.Join(req.RepoRoot, "builder.yaml"))
+	return config.Load(filepath.Join(req.RepoRoot, "odoo-builder.yaml"))
 }
 
 // Inspect returns req's fully-resolved form — normalized paths and, if
-// Output.Type was left empty, the same builder.yaml-driven resolution
+// Output.Type was left empty, the same odoo-builder.yaml-driven resolution
 // Engine.Build applies (internal/engine/output.go's resolveOutput) —
 // without discovering addons, preparing the build context, or invoking
 // BuildKit. Used by `builder inspect` to show what a subsequent `builder

@@ -35,7 +35,7 @@ func ResolveBaseImage(repoRoot string, base config.Base) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("dockerfile: no base image resolvable: builder.yaml base.version is empty and %s does not exist", path)
+			return "", fmt.Errorf("dockerfile: no base image resolvable: odoo-builder.yaml base.version is empty and %s does not exist", path)
 		}
 		return "", fmt.Errorf("dockerfile: reading %s: %w", path, err)
 	}

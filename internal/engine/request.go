@@ -29,20 +29,20 @@ type BuildRequest struct {
 type OutputSpec struct {
 	// Type selects "oci" (a local OCI-layout tarball) or "registry" (a
 	// push). Left empty by the caller, it is resolved by Engine.Build from
-	// builder.yaml's image.name (see resolveOutput in output.go) — this
+	// odoo-builder.yaml's image.name (see resolveOutput in output.go) — this
 	// requires I/O Normalize cannot perform, so it does not happen here.
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 	// Path is the local filesystem destination. Used when Type == "oci".
 	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 	// Image is the full "name:tag" reference to push to. Used when
-	// Type == "registry"; if empty, resolved from builder.yaml's
+	// Type == "registry"; if empty, resolved from odoo-builder.yaml's
 	// image.name/image.tag.
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 }
 
 // Normalize returns a copy of req with defaults filled in. It never
 // mutates req. Output defaults are resolved separately by Engine.Build
-// (see output.go), since they require builder.yaml's cfg.Image.
+// (see output.go), since they require odoo-builder.yaml's cfg.Image.
 func (req BuildRequest) Normalize() BuildRequest {
 	if req.BuildDir == "" {
 		req.BuildDir = filepath.Join(req.RepoRoot, ".build")

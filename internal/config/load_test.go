@@ -12,7 +12,7 @@ import (
 )
 
 func TestLoad_MissingFile_ReturnsDefaults(t *testing.T) {
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "builder.yaml"))
+	cfg, err := config.Load(filepath.Join(t.TempDir(), "odoo-builder.yaml"))
 	require.NoError(t, err)
 	assert.Equal(t, config.Default(), cfg)
 }
@@ -98,7 +98,7 @@ enterprise:
 
 func writeFile(t *testing.T, content string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "builder.yaml")
+	path := filepath.Join(t.TempDir(), "odoo-builder.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 	return path
 }

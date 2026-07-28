@@ -20,17 +20,27 @@ Repository → validate → prepare workspace → generate Dockerfile → BuildK
 
 ## Repository layout
 
+Custom addons live at the repository root. Third-party addons (OCA, vendors,
+...) are git submodules under `.third-party/<owner>/<repo>`, exposed via a
+symlink at the repository root pointing into the submodule — never copied in.
+
 ```
 repo/
-├── addons/
-│    ├── module_a/
-│    └── module_b/
-├── addons-extra/
-├── requirements.txt        # optional — pip install -r requirements.txt
-├── packages.txt            # optional — one Debian package per line
-├── builder.yaml            # optional — advanced configuration
-└── .gitmodules              # optional
+├── module_a/                # custom addon
+├── module_b/
+├── some_module -> .third-party/OCA/some-repo/some_module   # symlink
+├── .third-party/
+│    └── OCA/some-repo/      # git submodule
+├── requirements.txt         # optional — pip install -r requirements.txt
+├── packages.txt             # optional — one Debian package per line
+├── odoo_version.txt         # optional — base image ref, if odoo-builder.yaml's base.version is unset
+├── odoo-builder.yaml        # optional — advanced configuration
+└── .gitmodules               # optional
 ```
+
+A plain `addons/` (and `addons-extra/`) directory of modules is also
+supported via `odoo-builder.yaml`'s `addons.include` — the builder discovers
+addons both at the repository root and under any included directory.
 
 No Dockerfile expected or wanted.
 
@@ -39,7 +49,7 @@ No Dockerfile expected or wanted.
 ```
 builder build      # build (and push/load) the image
 builder prepare    # produce the deterministic .build/ context only
-builder validate   # check repo layout, addons, packages.txt, builder.yaml
+builder validate   # check repo layout, addons, packages.txt, odoo-builder.yaml
 builder inspect     # print the resolved BuildRequest without building
 builder version
 ```
@@ -60,11 +70,12 @@ builder build --load
 
 Builds and loads the image into the local Docker/Podman image store
 (`docker load`/`podman load`) instead of pushing — tagged from
-`builder.yaml`'s `image.name`/`image.tag`. Requires Engine Mode and
-`builder.yaml`'s `image.name` to be set. If the load step fails, the built
-tarball is kept on disk and the error names the exact command to retry.
+`odoo-builder.yaml`'s `image.name`/`image.tag`. Requires Engine Mode and
+`odoo-builder.yaml`'s `image.name` to be set. If the load step fails, the
+built tarball is kept on disk and the error names the exact command to
+retry.
 
-## builder.yaml
+## odoo-builder.yaml
 
 Everything is optional — the builder works with zero configuration.
 
@@ -75,6 +86,8 @@ base:
 
 enterprise:
   enabled: true
+  # commit: "abc123..."  # optional — pin to an exact commit, overrides date/branch resolution
+  # date: "20250611"     # optional — pin to this day instead of base.release
 
 addons:
   include:
@@ -108,9 +121,20 @@ environment:
 
 ## Enterprise support
 
-When `enterprise.enabled` is set, the builder clones Odoo Enterprise using
-BuildKit secrets for authentication — credentials are never copied into
-layers or logged.
+When `enterprise.enabled` is set, the builder fetches the Odoo Enterprise
+addons repository host-side, authenticating via the `ODOO_ENTERPRISE_TOKEN`
+environment variable — the token never appears in `odoo-builder.yaml`, a
+command line, or a log line. Which commit it fetches is resolved in this
+order:
+
+1. **`enterprise.commit`** — an exact commit SHA, used as-is. No
+   `base.version` needed.
+2. **A date** — `enterprise.date` if set, else `base.release`: the newest
+   commit on the `base.version` branch at or before that day, so Enterprise
+   addons are pinned to the same day as the community base image and the
+   build stays reproducible.
+3. **Neither set** — the `base.version` branch's tip at build time (not
+   reproducible across builds on different days).
 
 ## Design principles
 

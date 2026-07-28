@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Reference returns the full "name:tag" image reference for a builder.yaml
+// Reference returns the full "name:tag" image reference for a odoo-builder.yaml
 // image.name/image.tag pair. tag defaults to "latest" when empty.
 func Reference(name, tag string) string {
 	if tag == "" {
@@ -21,7 +21,7 @@ func Reference(name, tag string) string {
 	return name + ":" + tag
 }
 
-// Validate reports whether name is usable as builder.yaml's image.name: a
+// Validate reports whether name is usable as odoo-builder.yaml's image.name: a
 // non-empty registry/repository path with no whitespace, and no embedded
 // ":tag" or "@digest" — those belong in the separate image.tag field (or
 // aren't supported at all). Accepting a name like

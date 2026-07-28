@@ -94,7 +94,7 @@ func newBuildCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("mode", "", `override runtime detection: "engine" (force direct BuildKit, no container, no rootless retry) or "launcher" (force the container, even if buildctl/buildkitd are on PATH); default "auto" probes buildctl/buildkitd, or set ODOO_BUILDER_MODE`)
-	cmd.Flags().Bool("load", false, `build and load the image into the local Docker/Podman image store instead of pushing or writing an OCI tarball (docker load/podman load) — no push happens; requires builder.yaml's image.name and Engine Mode (errors under --mode launcher or when buildctl/buildkitd are missing)`)
+	cmd.Flags().Bool("load", false, `build and load the image into the local Docker/Podman image store instead of pushing or writing an OCI tarball (docker load/podman load) — no push happens; requires odoo-builder.yaml's image.name and Engine Mode (errors under --mode launcher or when buildctl/buildkitd are missing)`)
 	return cmd
 }
 

@@ -11,7 +11,7 @@ import (
 // intentionally permissive about which os/arch/variant names it accepts —
 // buildctl/buildkitd are the final authority at build time — the point is
 // catching obviously malformed entries (missing slash, embedded whitespace,
-// empty segments) in builder.yaml before a build even starts.
+// empty segments) in odoo-builder.yaml before a build even starts.
 var platformPattern = regexp.MustCompile(`^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?$`)
 
 // ValidatePlatform reports whether s looks like a well-formed "os/arch" (or

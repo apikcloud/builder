@@ -42,7 +42,7 @@ func TestInspectCmd_PrintsResolvedBuildRequest(t *testing.T) {
 func TestInspectCmd_MalformedConfig_ReturnsError(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 		[]byte("image:\n  name: \"app:v1\"\n"), 0o644))
 
 	oldWd, err := os.Getwd()

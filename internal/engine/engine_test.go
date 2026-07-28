@@ -46,7 +46,7 @@ func TestEngine_Prepare(t *testing.T) {
 }
 
 func TestEngine_Inspect(t *testing.T) {
-	t.Run("OCI default, no builder.yaml", func(t *testing.T) {
+	t.Run("OCI default, no odoo-builder.yaml", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
 
@@ -62,10 +62,10 @@ func TestEngine_Inspect(t *testing.T) {
 		assert.True(t, os.IsNotExist(err))
 	})
 
-	t.Run("registry convention via builder.yaml image.name", func(t *testing.T) {
+	t.Run("registry convention via odoo-builder.yaml image.name", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 		e := &Engine{}
@@ -79,7 +79,7 @@ func TestEngine_Inspect(t *testing.T) {
 	t.Run("malformed image.name surfaces the same error as Build", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: \"app:v1\"\n"), 0o644))
 
 		e := &Engine{}
@@ -124,10 +124,10 @@ func TestEngine_Build(t *testing.T) {
 		assert.Empty(t, result.ImageRef)
 	})
 
-	t.Run("registry push via builder.yaml convention", func(t *testing.T) {
+	t.Run("registry push via odoo-builder.yaml convention", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: registry.example.com/customer/odoo\n  tag: v1\n"), 0o644))
 
 		runner := &fakeRunner{out: buildkit.BuildOutput{ImageRef: "registry.example.com/customer/odoo:v1"}}
@@ -145,7 +145,7 @@ func TestEngine_Build(t *testing.T) {
 	t.Run("registry push defaults tag to latest when omitted", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 		runner := &fakeRunner{out: buildkit.BuildOutput{ImageRef: "registry.example.com/customer/odoo:latest"}}
@@ -160,7 +160,7 @@ func TestEngine_Build(t *testing.T) {
 	t.Run("explicit Output overrides image.name convention", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 		runner := &fakeRunner{out: buildkit.BuildOutput{OutputPath: "/custom.tar"}}
@@ -180,7 +180,7 @@ func TestEngine_Build(t *testing.T) {
 	t.Run("docker load output via explicit Output.Type", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: registry.example.com/customer/odoo\n  tag: v1\n"), 0o644))
 
 		runner := &fakeRunner{out: buildkit.BuildOutput{
@@ -215,14 +215,14 @@ func TestEngine_Build(t *testing.T) {
 			Output:   OutputSpec{Type: "docker"},
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "requires builder.yaml's image.name")
+		assert.Contains(t, err.Error(), "requires odoo-builder.yaml's image.name")
 		assert.Equal(t, 0, runner.calls)
 	})
 
 	t.Run("malformed image.name surfaces as error before Runner is invoked", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("image:\n  name: \"app:v1\"\n"), 0o644))
 
 		runner := &fakeRunner{}
@@ -263,7 +263,7 @@ func TestEngine_Build_Cache(t *testing.T) {
 	t.Run("cache enabled without image.name uses local cache dir", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("cache:\n  enabled: true\n"), 0o644))
 
 		runner := &fakeRunner{}
@@ -279,7 +279,7 @@ func TestEngine_Build_Cache(t *testing.T) {
 	t.Run("cache enabled with image.name uses registry cache ref", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("cache:\n  enabled: true\nimage:\n  name: registry.example.com/customer/odoo\n"), 0o644))
 
 		runner := &fakeRunner{}
@@ -294,10 +294,10 @@ func TestEngine_Build_Cache(t *testing.T) {
 }
 
 func TestEngine_Build_Platforms(t *testing.T) {
-	t.Run("platforms forwarded from builder.yaml", func(t *testing.T) {
+	t.Run("platforms forwarded from odoo-builder.yaml", func(t *testing.T) {
 		repoDir := t.TempDir()
 		require.NoError(t, workspace.CopyDir("../../testdata/simple", repoDir))
-		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "builder.yaml"),
+		require.NoError(t, os.WriteFile(filepath.Join(repoDir, "odoo-builder.yaml"),
 			[]byte("build:\n  platform:\n    - linux/amd64\n    - linux/arm64\n"), 0o644))
 
 		runner := &fakeRunner{}
