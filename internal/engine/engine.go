@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/apikcloud/odoo-builder/internal/buildkit"
@@ -147,6 +148,7 @@ func resolveSpec(repoRoot string, cfg *config.Config) (*ResolvedSpec, error) {
 func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, error) {
 	req = req.Normalize()
 
+	fmt.Fprintln(os.Stderr, "==> [1/3] validating")
 	if errs := e.Validate(req); len(errs) > 0 {
 		return BuildResult{}, fmt.Errorf("%w: %w", errValidationFailed, errors.Join(errs...))
 	}
@@ -156,7 +158,7 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 		return BuildResult{}, err
 	}
 
-	prepRes, err := e.prepareWithConfig(req, cfg)
+	resolved, err := resolveSpec(req.RepoRoot, cfg)
 	if err != nil {
 		return BuildResult{}, err
 	}
@@ -165,6 +167,15 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 	if err != nil {
 		return BuildResult{}, err
 	}
+
+	printBuildSummary(req, cfg, resolved, output)
+
+	fmt.Fprintln(os.Stderr, "==> [2/3] preparing build context")
+	prepRes, err := e.prepareWithConfig(req, cfg)
+	if err != nil {
+		return BuildResult{}, err
+	}
+	fmt.Fprintf(os.Stderr, "odoo-builder: prepared %d addon(s) at %s\n", prepRes.AddonCount, prepRes.BuildDir)
 
 	var cacheDir, cacheRef string
 	if cfg.Cache.Enabled {
@@ -195,6 +206,7 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 		}
 	}
 
+	fmt.Fprintln(os.Stderr, "==> [3/3] building image")
 	out, err := e.Runner.Build(ctx, buildkit.BuildOptions{
 		ContextDir:     prepRes.BuildDir,
 		DockerfilePath: filepath.Join(prepRes.BuildDir, "Dockerfile"),
@@ -210,4 +222,83 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 	}
 
 	return BuildResult{PrepareResult: prepRes, ImagePath: out.OutputPath, ImageRef: out.ImageRef}, nil
+}
+
+// printBuildSummary writes a multi-line summary of the resolved build to
+// stderr, once config/output resolution has succeeded but before Prepare
+// runs — addon counts aren't included here since Prepare is what actually
+// discovers them (see the "prepared N addon(s)" line Build logs right
+// after prepareWithConfig returns).
+func printBuildSummary(req BuildRequest, cfg *config.Config, resolved *ResolvedSpec, output OutputSpec) {
+	w := os.Stderr
+	fmt.Fprintln(w, "odoo-builder: build summary")
+	fmt.Fprintf(w, "  repo:        %s\n", req.RepoRoot)
+	fmt.Fprintf(w, "  build dir:   %s\n", req.BuildDir)
+	fmt.Fprintf(w, "  base image:  %s\n", baseImageSummary(resolved.Base))
+	fmt.Fprintf(w, "  enterprise:  %s\n", enterpriseSummary(resolved))
+	fmt.Fprintf(w, "  cache:       %s\n", cacheSummary(cfg, resolved.Builder.CacheEnabled))
+	fmt.Fprintf(w, "  output:      %s\n", outputSummary(output))
+	if req.Load {
+		fmt.Fprintln(w, "  load:        true")
+	}
+}
+
+// baseImageSummary formats spec.Image alongside the base.version/release
+// that produced it, when those were explicitly set (as opposed to
+// resolved from odoo_version.txt, see dockerfile.ResolveBaseImage).
+func baseImageSummary(spec BaseImageSpec) string {
+	if spec.Version == "" {
+		return spec.Image
+	}
+	if spec.Release == "" {
+		return fmt.Sprintf("%s (version=%s)", spec.Image, spec.Version)
+	}
+	return fmt.Sprintf("%s (version=%s, release=%s)", spec.Image, spec.Version, spec.Release)
+}
+
+// enterpriseSummary reports whether Enterprise addons are enabled and, if
+// so, what they're pinned to — mirroring prepare.enterpriseResolveDate's
+// fallback order (an explicit commit wins, then enterprise.date, then
+// base.release) so this never drifts from what prepare.Prepare actually
+// does when it retrieves them.
+func enterpriseSummary(resolved *ResolvedSpec) string {
+	if !resolved.Enterprise.Enabled {
+		return "disabled"
+	}
+	switch {
+	case resolved.Enterprise.Commit != "":
+		return fmt.Sprintf("enabled (commit=%s)", resolved.Enterprise.Commit)
+	case resolved.Enterprise.Date != "":
+		return fmt.Sprintf("enabled (pinned to %s)", resolved.Enterprise.Date)
+	case resolved.Base.Release != "":
+		return fmt.Sprintf("enabled (pinned to %s, via base.release)", resolved.Base.Release)
+	default:
+		return "enabled (branch tip)"
+	}
+}
+
+// cacheSummary reports whether BuildKit caching is enabled and, if so, its
+// configured type (cfg.Cache.Type — resolved.Builder doesn't carry it, only
+// whether caching is enabled at all).
+func cacheSummary(cfg *config.Config, enabled bool) string {
+	if !enabled {
+		return "disabled"
+	}
+	if cfg.Cache.Type != "" {
+		return fmt.Sprintf("enabled (type=%s)", cfg.Cache.Type)
+	}
+	return "enabled"
+}
+
+// outputSummary formats output (already fully resolved by resolveOutput)
+// for display.
+func outputSummary(output OutputSpec) string {
+	switch output.Type {
+	case "oci", "docker":
+		return fmt.Sprintf("%s -> %s", output.Type, output.Path)
+	case "registry":
+		return fmt.Sprintf("registry -> %s", output.Image)
+	default:
+		return output.Type
+	}
 }
