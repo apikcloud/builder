@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	workspace "github.com/apikcloud/workspace-provider"
+	workspace "github.com/apikcloud/workspace-provider/pkg/workspace"
 	githubprovider "github.com/apikcloud/workspace-provider/providers/github"
 )
 

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"os"
 
-	workspace "github.com/apikcloud/workspace-provider"
+	workspace "github.com/apikcloud/workspace-provider/pkg/workspace"
 	_ "github.com/apikcloud/workspace-provider/providers/github"
 )
 
