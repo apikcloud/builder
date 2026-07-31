@@ -210,6 +210,43 @@ order:
 3. **Neither set** — the `base.version` branch's tip at build time (not
    reproducible across builds on different days).
 
+## Local development
+
+```bash
+make test-local
+```
+
+Builds this checkout's `odoo-builder`/`odoo-builder-engine` (`make build`) and
+runs them against `testdata/simple` with `PATH` pinned to this checkout's
+`bin/` — so it always exercises the binaries you just built, not whatever
+`odoo-builder-engine` happens to already be on `$PATH` (e.g. an older install
+under `~/.local/bin`).
+
+Default `TEST_MODE=auto` mirrors the CLI's own `--mode auto`: tries Engine
+Mode first, and — only if `buildkitd` can't run directly on the host (e.g. no
+root/RootlessKit) — retries automatically in Launcher Mode. That automatic
+fallback uses `ODOO_BUILDER_IMAGE` if set, else whatever `:latest` was last
+pulled/built locally, which may be stale. Run `eval "$(make image-dev)"`
+first (tags `apik/odoo-builder:dev`; plain `make image` tags a version string
+`ImageRef` won't resolve to) so the fallback — or an explicit
+`TEST_MODE=launcher` — runs your current code instead:
+
+```bash
+eval "$(make image-dev)"
+make test-local TEST_MODE=launcher
+```
+
+Override the target repo:
+
+```bash
+make test-local TESTDIR=path/to/repo
+```
+
+If `TESTDIR/odoo-builder.yaml` is untracked (not committed — check with `git
+status --short`), `test-local` warns before running: an untracked config
+enabling `enterprise.enabled`, for instance, silently triggers a real network
+fetch against the Enterprise repository on every local test run.
+
 ## Design principles
 
 * Convention over configuration.

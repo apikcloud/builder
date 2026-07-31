@@ -1,8 +1,16 @@
 # syntax=docker/dockerfile:1
 FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS build
 WORKDIR /src
+# github.com/apikcloud/workspace-provider is a private repo — GOPRIVATE
+# skips the public module proxy/checksum DB for it, and the insteadOf
+# rewrite makes `go mod download` fetch it over SSH (forwarded via
+# --mount=type=ssh below, see the `image`/`image-dev` Makefile targets'
+# `docker build --ssh default`) instead of unauthenticated HTTPS.
+ENV GOPRIVATE=github.com/apikcloud/workspace-provider
+RUN mkdir -p -m 0700 /root/.ssh && ssh-keyscan -t rsa,ed25519 github.com >> /root/.ssh/known_hosts \
+    && git config --global url."git@github.com:".insteadOf "https://github.com/"
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=ssh go mod download
 COPY . .
 ARG VERSION=dev
 ARG COMMIT=none
