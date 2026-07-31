@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
+	"github.com/apikcloud/builder/internal/engine"
 )
 
 // fakeEngineDir holds the directory containing a compiled testdata/fakeengine

@@ -14,8 +14,8 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
-	"github.com/apikcloud/odoo-builder/internal/version"
+	"github.com/apikcloud/builder/internal/engine"
+	"github.com/apikcloud/builder/internal/version"
 )
 
 // DefaultImageRepo is the distributable odoo-builder image's repository

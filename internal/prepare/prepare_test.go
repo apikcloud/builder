@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
-	"github.com/apikcloud/odoo-builder/internal/prepare"
-	"github.com/apikcloud/odoo-builder/internal/workspace"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/prepare"
+	"github.com/apikcloud/builder/internal/workspace"
 )
 
 func TestPrepare_MatchesExpectedTree(t *testing.T) {

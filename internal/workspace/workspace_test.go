@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/workspace"
+	"github.com/apikcloud/builder/internal/workspace"
 )
 
 func TestNew_CreatesEmptyRoot(t *testing.T) {

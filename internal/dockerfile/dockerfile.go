@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
+	"github.com/apikcloud/builder/internal/config"
 )
 
 // enterpriseAddonsTarget is where Enterprise addons are copied inside the

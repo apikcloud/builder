@@ -18,7 +18,7 @@ ARG DATE=unknown
 ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
-      -ldflags "-X github.com/apikcloud/odoo-builder/internal/version.Version=${VERSION} -X github.com/apikcloud/odoo-builder/internal/version.Commit=${COMMIT} -X github.com/apikcloud/odoo-builder/internal/version.Date=${DATE}" \
+      -ldflags "-X github.com/apikcloud/builder/internal/version.Version=${VERSION} -X github.com/apikcloud/builder/internal/version.Commit=${COMMIT} -X github.com/apikcloud/builder/internal/version.Date=${DATE}" \
       -o /out/odoo-builder-engine ./cmd/odoo-builder-engine
 # odoo-builder (the launcher) is intentionally NOT built into this image —
 # it never runs inside the container (see

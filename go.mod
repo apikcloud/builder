@@ -1,4 +1,4 @@
-module github.com/apikcloud/odoo-builder
+module github.com/apikcloud/builder
 
 go 1.26.5
 

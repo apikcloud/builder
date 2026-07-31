@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/apikcloud/odoo-builder/internal/buildkit"
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/dockerfile"
-	"github.com/apikcloud/odoo-builder/internal/prepare"
-	"github.com/apikcloud/odoo-builder/internal/registry"
+	"github.com/apikcloud/builder/internal/buildkit"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/dockerfile"
+	"github.com/apikcloud/builder/internal/prepare"
+	"github.com/apikcloud/builder/internal/registry"
 )
 
 // errValidationFailed is wrapped into Build's pre-build validation error so

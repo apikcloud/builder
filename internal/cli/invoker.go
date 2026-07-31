@@ -5,8 +5,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
-	"github.com/apikcloud/odoo-builder/internal/launcher"
+	"github.com/apikcloud/builder/internal/engine"
+	"github.com/apikcloud/builder/internal/launcher"
 )
 
 // invokeEngine is a package-level var so tests can substitute a fake

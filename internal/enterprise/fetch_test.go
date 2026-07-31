@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/enterprise"
 )
 
 // buildZip returns a zip archive with one entry per name -> content pair,

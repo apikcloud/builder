@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/dockerfile"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/dockerfile"
 )
 
 func TestGenerate_Minimal(t *testing.T) {

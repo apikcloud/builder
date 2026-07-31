@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
-	"github.com/apikcloud/odoo-builder/internal/launcher"
+	"github.com/apikcloud/builder/internal/engine"
+	"github.com/apikcloud/builder/internal/launcher"
 )
 
 // launcherDetectRuntime and launcherLoad are package-level vars (mirroring

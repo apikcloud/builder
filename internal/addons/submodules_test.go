@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/addons"
+	"github.com/apikcloud/builder/internal/addons"
 )
 
 func requireGit(t *testing.T) {

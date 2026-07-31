@@ -1,4 +1,4 @@
-MODULE  := github.com/apikcloud/odoo-builder
+MODULE  := github.com/apikcloud/builder
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X $(MODULE)/internal/version.Version=$(VERSION)
 

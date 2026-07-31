@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
+	"github.com/apikcloud/builder/internal/config"
 )
 
 func TestLoad_MissingFile_ReturnsDefaults(t *testing.T) {

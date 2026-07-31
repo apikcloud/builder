@@ -9,11 +9,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/apikcloud/odoo-builder/internal/addons"
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/dockerfile"
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
-	"github.com/apikcloud/odoo-builder/internal/workspace"
+	"github.com/apikcloud/builder/internal/addons"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/dockerfile"
+	"github.com/apikcloud/builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/workspace"
 )
 
 // EnterpriseFetchFunc and EnterpriseResolveCommitFunc match

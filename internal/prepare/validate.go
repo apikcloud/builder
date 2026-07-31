@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/apikcloud/odoo-builder/internal/addons"
-	"github.com/apikcloud/odoo-builder/internal/buildkit"
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/dockerfile"
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
-	"github.com/apikcloud/odoo-builder/internal/registry"
+	"github.com/apikcloud/builder/internal/addons"
+	"github.com/apikcloud/builder/internal/buildkit"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/dockerfile"
+	"github.com/apikcloud/builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/registry"
 )
 
 // Validate checks repoRoot's layout, odoo-builder.yaml syntax (if present),

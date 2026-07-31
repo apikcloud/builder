@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/enterprise"
 )
 
 // withFakeGitHubAPI points enterprise.APIBaseURL at a local test server

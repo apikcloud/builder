@@ -16,8 +16,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
-	"github.com/apikcloud/odoo-builder/internal/version"
+	"github.com/apikcloud/builder/internal/engine"
+	"github.com/apikcloud/builder/internal/version"
 )
 
 func main() {

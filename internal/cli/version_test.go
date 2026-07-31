@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/version"
+	"github.com/apikcloud/builder/internal/version"
 )
 
 func TestVersionCmd_PrintsVersion(t *testing.T) {

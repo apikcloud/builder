@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/apikcloud/odoo-builder/internal/buildkit"
+	"github.com/apikcloud/builder/internal/buildkit"
 )
 
 // Execute runs req.Command against e and returns a BuildResponse — the

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
+	"github.com/apikcloud/builder/internal/engine"
 )
 
 // gracefulCancel replaces a *exec.Cmd's default ctx-cancellation behavior

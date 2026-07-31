@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
+	"github.com/apikcloud/builder/internal/config"
 )
 
 var releaseDatePattern = regexp.MustCompile(`\d{8}`)

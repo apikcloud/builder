@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apikcloud/odoo-builder/internal/cli"
+	"github.com/apikcloud/builder/internal/cli"
 )
 
 func main() {

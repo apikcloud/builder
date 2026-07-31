@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apikcloud/odoo-builder/internal/version"
+	"github.com/apikcloud/builder/internal/version"
 )
 
 func newVersionCmd() *cobra.Command {

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/engine"
+	"github.com/apikcloud/builder/internal/engine"
 )
 
 func TestValidateCmd_OK(t *testing.T) {

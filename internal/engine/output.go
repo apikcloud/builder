@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/apikcloud/odoo-builder/internal/config"
-	"github.com/apikcloud/odoo-builder/internal/registry"
+	"github.com/apikcloud/builder/internal/config"
+	"github.com/apikcloud/builder/internal/registry"
 )
 
 // resolveOutput fills in spec's remaining defaults, consulting cfg.

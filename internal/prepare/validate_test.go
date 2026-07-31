@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apikcloud/odoo-builder/internal/enterprise"
-	"github.com/apikcloud/odoo-builder/internal/prepare"
+	"github.com/apikcloud/builder/internal/enterprise"
+	"github.com/apikcloud/builder/internal/prepare"
 )
 
 func TestValidate_ValidRepo_NoErrors(t *testing.T) {
