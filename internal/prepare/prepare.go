@@ -21,8 +21,9 @@ import (
 // these exported variables so tests can point them at fake implementations
 // instead of the real network; production code never reassigns them.
 var (
-	EnterpriseFetchFunc         = enterprise.Fetch
-	EnterpriseResolveCommitFunc = enterprise.ResolveCommit
+	EnterpriseFetchFunc             = enterprise.Fetch
+	EnterpriseResolveCommitFunc     = enterprise.ResolveCommit
+	EnterpriseResolveBranchHeadFunc = enterprise.ResolveBranchHead
 )
 
 // Prepare builds the deterministic build context for repoRoot at buildDir
@@ -94,10 +95,19 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at commit %s (resolved in %s)\n", sha, time.Since(resolveStart).Round(time.Millisecond))
 			ref = sha
 		default:
-			// No date available to pin against: fall back to the branch
-			// tip, same as before date-based resolution existed.
-			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons from branch %s (tip)\n", cfg.Base.Version)
-			ref = cfg.Base.Version
+			// No date available to pin against: resolve the branch's current
+			// HEAD commit (rather than using the bare branch name as ref, as
+			// before) so this case's fetch is keyed by an immutable SHA and
+			// can be served from EnterpriseFetchFunc's cache exactly like the
+			// commit/date-pinned cases above.
+			fmt.Fprintf(os.Stderr, "odoo-builder: resolving Enterprise HEAD commit on branch %s\n", cfg.Base.Version)
+			resolveStart := time.Now()
+			sha, resolveErr := EnterpriseResolveBranchHeadFunc(cfg.Base.Version, token)
+			if resolveErr != nil {
+				return 0, resolveErr
+			}
+			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at commit %s (resolved in %s)\n", sha, time.Since(resolveStart).Round(time.Millisecond))
+			ref = sha
 		}
 
 		fetchStart := time.Now()

@@ -2,7 +2,11 @@
 package prepare_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"io/fs"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -215,11 +219,18 @@ func TestPrepare_Enterprise(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	old := prepare.EnterpriseFetchFunc
+	oldFetch := prepare.EnterpriseFetchFunc
 	prepare.EnterpriseFetchFunc = func(_, _ string) (string, func(), error) {
 		return entFixture, func() {}, nil
 	}
-	t.Cleanup(func() { prepare.EnterpriseFetchFunc = old })
+	t.Cleanup(func() { prepare.EnterpriseFetchFunc = oldFetch })
+
+	oldResolveHead := prepare.EnterpriseResolveBranchHeadFunc
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		return "tip-sha", nil
+	}
+	t.Cleanup(func() { prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead })
+
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
 	cfg := config.Default()
@@ -243,10 +254,11 @@ func TestPrepare_Enterprise_ExplicitCommit_SkipsDateAndCloneResolution(t *testin
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
+	oldFetch, oldResolve, oldResolveHead := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseResolveBranchHeadFunc
 	t.Cleanup(func() {
 		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
+		prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead
 	})
 
 	var fetchedRef string
@@ -256,6 +268,10 @@ func TestPrepare_Enterprise_ExplicitCommit_SkipsDateAndCloneResolution(t *testin
 	}
 	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
 		t.Fatal("ResolveCommit must not be called when enterprise.commit is set")
+		return "", nil
+	}
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		t.Fatal("ResolveBranchHead must not be called when enterprise.commit or a date is set")
 		return "", nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
@@ -277,10 +293,11 @@ func TestPrepare_Enterprise_DateResolvesCommitBeforeDownloading(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
+	oldFetch, oldResolve, oldResolveHead := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseResolveBranchHeadFunc
 	t.Cleanup(func() {
 		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
+		prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead
 	})
 
 	var resolvedBranch, resolvedDate, fetchedRef string
@@ -291,6 +308,10 @@ func TestPrepare_Enterprise_DateResolvesCommitBeforeDownloading(t *testing.T) {
 	prepare.EnterpriseFetchFunc = func(ref, token string) (string, func(), error) {
 		fetchedRef = ref
 		return entFixture, func() {}, nil
+	}
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		t.Fatal("ResolveBranchHead must not be called when enterprise.commit or a date is set")
+		return "", nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
@@ -312,10 +333,11 @@ func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
+	oldFetch, oldResolve, oldResolveHead := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseResolveBranchHeadFunc
 	t.Cleanup(func() {
 		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
+		prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead
 	})
 
 	var resolvedDate string
@@ -325,6 +347,10 @@ func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
 	}
 	prepare.EnterpriseFetchFunc = func(ref, token string) (string, func(), error) {
 		return entFixture, func() {}, nil
+	}
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		t.Fatal("ResolveBranchHead must not be called when enterprise.commit or a date is set")
+		return "", nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
@@ -363,11 +389,18 @@ func TestPrepare_EnterpriseDuplicatesCommunity_ReturnsError(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "sale_custom"), validManifestEnt("Enterprise Sale Custom"))
 
-	old := prepare.EnterpriseFetchFunc
+	oldFetch := prepare.EnterpriseFetchFunc
 	prepare.EnterpriseFetchFunc = func(_, _ string) (string, func(), error) {
 		return entFixture, func() {}, nil
 	}
-	t.Cleanup(func() { prepare.EnterpriseFetchFunc = old })
+	t.Cleanup(func() { prepare.EnterpriseFetchFunc = oldFetch })
+
+	oldResolveHead := prepare.EnterpriseResolveBranchHeadFunc
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		return "tip-sha", nil
+	}
+	t.Cleanup(func() { prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead })
+
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
 	cfg := config.Default()
@@ -378,6 +411,67 @@ func TestPrepare_EnterpriseDuplicatesCommunity_ReturnsError(t *testing.T) {
 	_, err := prepare.Prepare("../../testdata/simple", buildDir, cfg)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sale_custom")
+}
+
+func TestPrepare_Enterprise_TipReusesCacheAcrossPrepareCalls(t *testing.T) {
+	var hits int
+	zipData := buildZip(t, map[string]string{
+		"top/enterprise_addon/__manifest__.py": validManifestEnt("Enterprise Addon"),
+	})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Write(zipData)
+	}))
+	defer srv.Close()
+
+	oldAPIBase := enterprise.APIBaseURL
+	enterprise.APIBaseURL = srv.URL
+	t.Cleanup(func() { enterprise.APIBaseURL = oldAPIBase })
+
+	oldResolveHead := prepare.EnterpriseResolveBranchHeadFunc
+	prepare.EnterpriseResolveBranchHeadFunc = func(branch, token string) (string, error) {
+		return "sha-tip", nil
+	}
+	t.Cleanup(func() { prepare.EnterpriseResolveBranchHeadFunc = oldResolveHead })
+
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Setenv(enterprise.TokenEnvVar, "tok")
+
+	cfg := config.Default()
+	cfg.Enterprise.Enabled = true
+	cfg.Base.Version = "18.0"
+
+	buildDir1 := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare("../../testdata/simple", buildDir1, cfg)
+	require.NoError(t, err)
+
+	buildDir2 := filepath.Join(t.TempDir(), ".build")
+	_, err = prepare.Prepare("../../testdata/simple", buildDir2, cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, hits, "the second Prepare call must reuse the first's cached Enterprise fetch, not hit the network again")
+
+	for _, dir := range []string{buildDir1, buildDir2} {
+		_, statErr := os.Stat(filepath.Join(dir, "enterprise-addons", "enterprise_addon", "__manifest__.py"))
+		require.NoError(t, statErr)
+	}
+}
+
+// buildZip returns a zip archive with one entry per name -> content pair,
+// wrapped as the github provider expects (a single top-level folder,
+// stripped on extraction).
+func buildZip(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	for name, content := range files {
+		f, err := w.Create(name)
+		require.NoError(t, err)
+		_, err = f.Write([]byte(content))
+		require.NoError(t, err)
+	}
+	require.NoError(t, w.Close())
+	return buf.Bytes()
 }
 
 // treeContents walks root and returns relative-path -> file-content for
