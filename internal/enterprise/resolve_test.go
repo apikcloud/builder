@@ -79,3 +79,30 @@ func TestResolveCommit_EmptyToken_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), enterprise.TokenEnvVar)
 }
+
+func TestResolveBranchHead_ReturnsHeadSHA(t *testing.T) {
+	withFakeGitHubAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/repos/odoo/enterprise/commits", r.URL.Path)
+		assert.Equal(t, "18.0", r.URL.Query().Get("sha"))
+		assert.Empty(t, r.URL.Query().Get("until"))
+		assert.Equal(t, "token correct-token", r.Header.Get("Authorization"))
+
+		fmt.Fprint(w, `[{"sha": "headsha123"}, {"sha": "older456"}]`)
+	})
+
+	sha, err := enterprise.ResolveBranchHead("18.0", "correct-token")
+	require.NoError(t, err)
+	assert.Equal(t, "headsha123", sha)
+}
+
+func TestResolveBranchHead_EmptyBranch_ReturnsError(t *testing.T) {
+	_, err := enterprise.ResolveBranchHead("", "tok")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "base.version")
+}
+
+func TestResolveBranchHead_EmptyToken_ReturnsError(t *testing.T) {
+	_, err := enterprise.ResolveBranchHead("18.0", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), enterprise.TokenEnvVar)
+}
