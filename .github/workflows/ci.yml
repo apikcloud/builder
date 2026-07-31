@@ -10,6 +10,12 @@ jobs:
   go:
     name: Build, vet, lint, test
     runs-on: ubuntu-latest
+    env:
+      # github.com/apikcloud/workspace-provider is a private repo — see
+      # image/Dockerfile's own GOPRIVATE comment. Skips the public module
+      # proxy/checksum DB for it; the ssh-agent + insteadOf setup below
+      # fetches it over SSH using a read-only deploy key instead.
+      GOPRIVATE: github.com/apikcloud/workspace-provider
     steps:
       - uses: actions/checkout@v7
 
@@ -17,6 +23,18 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.WORKSPACE_PROVIDER_SSH_KEY }}
+
+      - name: Trust github.com host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -t rsa,ed25519 github.com >> ~/.ssh/known_hosts
+
+      - name: Fetch private Go modules over SSH
+        run: git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - name: Build
         run: make build
@@ -36,6 +54,10 @@ jobs:
       - uses: docker/setup-qemu-action@v4
 
       - uses: docker/setup-buildx-action@v4
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.WORKSPACE_PROVIDER_SSH_KEY }}
 
       - name: Build image (all platforms, no push)
         run: make image-verify
