@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/apikcloud/odoo-builder/internal/addons"
 	"github.com/apikcloud/odoo-builder/internal/config"
@@ -15,15 +16,13 @@ import (
 	"github.com/apikcloud/odoo-builder/internal/workspace"
 )
 
-// EnterpriseCloneFunc, EnterpriseResolveCommitFunc, and
-// EnterpriseDownloadFunc match enterprise.Clone/ResolveCommit/Download's
-// signatures. Prepare calls them through these exported variables so tests
-// can point them at a local fixture instead of the real Enterprise
-// repository/GitHub API; production code never reassigns them.
+// EnterpriseFetchFunc and EnterpriseResolveCommitFunc match
+// enterprise.Fetch/ResolveCommit's signatures. Prepare calls them through
+// these exported variables so tests can point them at fake implementations
+// instead of the real network; production code never reassigns them.
 var (
-	EnterpriseCloneFunc         = enterprise.Clone
+	EnterpriseFetchFunc         = enterprise.Fetch
 	EnterpriseResolveCommitFunc = enterprise.ResolveCommit
-	EnterpriseDownloadFunc      = enterprise.Download
 )
 
 // Prepare builds the deterministic build context for repoRoot at buildDir
@@ -74,44 +73,46 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 	if cfg.Enterprise.Enabled {
 		token := os.Getenv(enterprise.TokenEnvVar)
 
-		var (
-			entDir   string
-			cleanup  func()
-			cloneErr error
-		)
+		var ref string
 		switch {
 		case cfg.Enterprise.Commit != "":
 			// Explicit override: an exact commit wins over any date/branch
 			// resolution, and needs no base.version at all.
 			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at pinned commit %s\n", cfg.Enterprise.Commit)
-			entDir, cleanup, cloneErr = EnterpriseDownloadFunc(cfg.Enterprise.Commit, token)
+			ref = cfg.Enterprise.Commit
 		case enterpriseResolveDate(cfg) != "":
 			// Reproducible default: pin Enterprise addons to the same day
 			// as the community base image (base.release), or an explicit
 			// enterprise.date override, instead of the branch's tip.
 			date := enterpriseResolveDate(cfg)
 			fmt.Fprintf(os.Stderr, "odoo-builder: resolving Enterprise commit on branch %s as of %s\n", cfg.Base.Version, date)
-			var sha string
-			sha, cloneErr = EnterpriseResolveCommitFunc(cfg.Base.Version, date, token)
-			if cloneErr == nil {
-				fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at commit %s\n", sha)
-				entDir, cleanup, cloneErr = EnterpriseDownloadFunc(sha, token)
+			resolveStart := time.Now()
+			sha, resolveErr := EnterpriseResolveCommitFunc(cfg.Base.Version, date, token)
+			if resolveErr != nil {
+				return 0, resolveErr
 			}
+			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons at commit %s (resolved in %s)\n", sha, time.Since(resolveStart).Round(time.Millisecond))
+			ref = sha
 		default:
 			// No date available to pin against: fall back to the branch
 			// tip, same as before date-based resolution existed.
 			fmt.Fprintf(os.Stderr, "odoo-builder: retrieving Enterprise addons from branch %s (tip)\n", cfg.Base.Version)
-			entDir, cleanup, cloneErr = EnterpriseCloneFunc(enterprise.RepoURL, cfg.Base.Version, token)
+			ref = cfg.Base.Version
 		}
-		if cloneErr != nil {
-			return 0, cloneErr
+
+		fetchStart := time.Now()
+		entDir, cleanup, fetchErr := EnterpriseFetchFunc(ref, token)
+		if fetchErr != nil {
+			return 0, fetchErr
 		}
 		defer cleanup()
+		fmt.Fprintf(os.Stderr, "odoo-builder: fetched Enterprise tree in %s\n", time.Since(fetchStart).Round(time.Millisecond))
 
+		discoverStart := time.Now()
 		entAddons, entErrs := addons.DiscoverAt(entDir, cfg.Addons.Exclude, !cfg.Addons.SkipManifestValidation)
 		errs = append(errs, entErrs...)
 		enterpriseAddons = entAddons
-		fmt.Fprintf(os.Stderr, "odoo-builder: retrieved %d Enterprise addon(s)\n", len(entAddons))
+		fmt.Fprintf(os.Stderr, "odoo-builder: retrieved %d Enterprise addon(s) (discovered in %s)\n", len(entAddons), time.Since(discoverStart).Round(time.Millisecond))
 
 		combined := append(append([]addons.Addon{}, discovered...), entAddons...)
 		_, dupErrs := addons.Dedup(combined)

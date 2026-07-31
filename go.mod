@@ -3,6 +3,7 @@ module github.com/apikcloud/odoo-builder
 go 1.26.5
 
 require (
+	github.com/apikcloud/workspace-provider v0.0.0-20260731132315-df9342ca00c8
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1

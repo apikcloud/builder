@@ -212,12 +212,14 @@ func TestPrepare_SkipManifestValidation_ToleratesInvalidManifestContent(t *testi
 }
 
 func TestPrepare_Enterprise(t *testing.T) {
-	repoURL := startAuthedGitServer(t, "18.0", "enterprise_addon/__manifest__.py", validManifestEnt("Enterprise Addon"), "tok")
-	old := prepare.EnterpriseCloneFunc
-	prepare.EnterpriseCloneFunc = func(_, version, token string) (string, func(), error) {
-		return enterprise.Clone(repoURL, version, token)
+	entFixture := t.TempDir()
+	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
+
+	old := prepare.EnterpriseFetchFunc
+	prepare.EnterpriseFetchFunc = func(_, _ string) (string, func(), error) {
+		return entFixture, func() {}, nil
 	}
-	t.Cleanup(func() { prepare.EnterpriseCloneFunc = old })
+	t.Cleanup(func() { prepare.EnterpriseFetchFunc = old })
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
 	cfg := config.Default()
@@ -241,25 +243,20 @@ func TestPrepare_Enterprise_ExplicitCommit_SkipsDateAndCloneResolution(t *testin
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldDownload, oldResolve, oldClone := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseCloneFunc
+	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
 	t.Cleanup(func() {
-		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
-		prepare.EnterpriseCloneFunc = oldClone
 	})
 
-	var downloadedCommit string
-	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
-		downloadedCommit = commit
+	var fetchedRef string
+	prepare.EnterpriseFetchFunc = func(ref, token string) (string, func(), error) {
+		fetchedRef = ref
 		return entFixture, func() {}, nil
 	}
 	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
 		t.Fatal("ResolveCommit must not be called when enterprise.commit is set")
 		return "", nil
-	}
-	prepare.EnterpriseCloneFunc = func(_, _, _ string) (string, func(), error) {
-		t.Fatal("Clone (branch tip) must not be called when enterprise.commit is set")
-		return "", nil, nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
@@ -273,32 +270,27 @@ func TestPrepare_Enterprise_ExplicitCommit_SkipsDateAndCloneResolution(t *testin
 	count, err := prepare.Prepare("../../testdata/simple", buildDir, cfg)
 	require.NoError(t, err)
 	assert.Equal(t, 2, count)
-	assert.Equal(t, "deadbeef", downloadedCommit)
+	assert.Equal(t, "deadbeef", fetchedRef)
 }
 
 func TestPrepare_Enterprise_DateResolvesCommitBeforeDownloading(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldDownload, oldResolve, oldClone := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc, prepare.EnterpriseCloneFunc
+	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
 	t.Cleanup(func() {
-		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
-		prepare.EnterpriseCloneFunc = oldClone
 	})
 
-	var resolvedBranch, resolvedDate, downloadedCommit string
+	var resolvedBranch, resolvedDate, fetchedRef string
 	prepare.EnterpriseResolveCommitFunc = func(branch, date, token string) (string, error) {
 		resolvedBranch, resolvedDate = branch, date
 		return "resolvedsha", nil
 	}
-	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
-		downloadedCommit = commit
+	prepare.EnterpriseFetchFunc = func(ref, token string) (string, func(), error) {
+		fetchedRef = ref
 		return entFixture, func() {}, nil
-	}
-	prepare.EnterpriseCloneFunc = func(_, _, _ string) (string, func(), error) {
-		t.Fatal("Clone (branch tip) must not be called when a date is resolvable")
-		return "", nil, nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
@@ -313,16 +305,16 @@ func TestPrepare_Enterprise_DateResolvesCommitBeforeDownloading(t *testing.T) {
 	assert.Equal(t, 2, count)
 	assert.Equal(t, "18.0", resolvedBranch)
 	assert.Equal(t, "20250611", resolvedDate, "must default to base.release when enterprise.date is unset")
-	assert.Equal(t, "resolvedsha", downloadedCommit)
+	assert.Equal(t, "resolvedsha", fetchedRef)
 }
 
 func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
 	entFixture := t.TempDir()
 	writeManifest(t, filepath.Join(entFixture, "enterprise_addon"), validManifestEnt("Enterprise Addon"))
 
-	oldDownload, oldResolve := prepare.EnterpriseDownloadFunc, prepare.EnterpriseResolveCommitFunc
+	oldFetch, oldResolve := prepare.EnterpriseFetchFunc, prepare.EnterpriseResolveCommitFunc
 	t.Cleanup(func() {
-		prepare.EnterpriseDownloadFunc = oldDownload
+		prepare.EnterpriseFetchFunc = oldFetch
 		prepare.EnterpriseResolveCommitFunc = oldResolve
 	})
 
@@ -331,7 +323,7 @@ func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
 		resolvedDate = date
 		return "resolvedsha", nil
 	}
-	prepare.EnterpriseDownloadFunc = func(commit, token string) (string, func(), error) {
+	prepare.EnterpriseFetchFunc = func(ref, token string) (string, func(), error) {
 		return entFixture, func() {}, nil
 	}
 	t.Setenv(enterprise.TokenEnvVar, "tok")
@@ -349,9 +341,9 @@ func TestPrepare_Enterprise_ExplicitDateOverridesBaseRelease(t *testing.T) {
 }
 
 func TestPrepare_EnterpriseTokenMissing_ReturnsError(t *testing.T) {
-	// EnterpriseCloneFunc is left at its default (the real enterprise.Clone):
-	// an empty token must fail fast, before any subprocess or network
-	// activity, which is exactly what this test verifies.
+	// EnterpriseFetchFunc is left at its default (the real enterprise.Fetch):
+	// an empty token must fail fast, before any network activity, which is
+	// exactly what this test verifies.
 	t.Setenv(enterprise.TokenEnvVar, "")
 
 	cfg := config.Default()
@@ -368,12 +360,14 @@ func TestPrepare_EnterpriseTokenMissing_ReturnsError(t *testing.T) {
 }
 
 func TestPrepare_EnterpriseDuplicatesCommunity_ReturnsError(t *testing.T) {
-	repoURL := startAuthedGitServer(t, "18.0", "sale_custom/__manifest__.py", validManifestEnt("Enterprise Sale Custom"), "tok")
-	old := prepare.EnterpriseCloneFunc
-	prepare.EnterpriseCloneFunc = func(_, version, token string) (string, func(), error) {
-		return enterprise.Clone(repoURL, version, token)
+	entFixture := t.TempDir()
+	writeManifest(t, filepath.Join(entFixture, "sale_custom"), validManifestEnt("Enterprise Sale Custom"))
+
+	old := prepare.EnterpriseFetchFunc
+	prepare.EnterpriseFetchFunc = func(_, _ string) (string, func(), error) {
+		return entFixture, func() {}, nil
 	}
-	t.Cleanup(func() { prepare.EnterpriseCloneFunc = old })
+	t.Cleanup(func() { prepare.EnterpriseFetchFunc = old })
 	t.Setenv(enterprise.TokenEnvVar, "tok")
 
 	cfg := config.Default()
