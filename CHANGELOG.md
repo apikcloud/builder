@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-01
+
+### Added
+
+- Enterprise addon fetches are now cached on disk keyed by commit SHA, avoiding redundant re-fetches of an already-retrieved commit across builds
+- Build progress output expanded into a staged summary, giving finer-grained visibility into each step as it completes
+
 ## [0.5.0] - 2026-07-28
 
 ### Added

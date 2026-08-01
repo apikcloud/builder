@@ -2,6 +2,15 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.6.0] - 2026-08-01
+
+Faster repeat builds for Enterprise users, plus clearer progress reporting.
+
+### ✨ What's new
+
+- Enterprise addons are now cached on disk after first fetch, so rebuilding with the same commit is faster — no more re-downloading what you already have.
+- Build progress now shows a staged, step-by-step summary, making it easier to see exactly what's happening during a build.
+
 ## [0.5.0] - 2026-07-28
 
 A small visibility improvement so builds no longer look stuck.
