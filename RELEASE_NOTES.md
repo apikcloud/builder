@@ -2,6 +2,14 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.8.0] - 2026-08-24
+
+Support for connecting to a remote build server that requires a client certificate.
+
+### ✨ What's new
+
+- If your organization's build server (`buildkitd`) requires client certificates for secure connections, you can now point `odoo-builder` at it by setting three new environment variables (`BUILDKIT_TLS_CERT`, `BUILDKIT_TLS_KEY`, `BUILDKIT_TLS_CACERT`) with the paths to your certificate, key, and CA files.
+
 ## [0.7.0] - 2026-08-24
 
 A new option for pushing to registries without TLS, plus a fix to keep upgrade scripts in place inside the built image.
