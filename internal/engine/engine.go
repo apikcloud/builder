@@ -213,6 +213,7 @@ func (e *Engine) Build(ctx context.Context, req BuildRequest) (BuildResult, erro
 		OutputType:     output.Type,
 		OutputPath:     output.Path,
 		Image:          output.Image,
+		Insecure:       output.Insecure,
 		CacheDir:       cacheDir,
 		CacheRef:       cacheRef,
 		Platforms:      cfg.Build.Platform,

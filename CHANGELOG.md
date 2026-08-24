@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `BuildRequest.Output.Insecure` lets a caller push to a registry with no TLS or an unverifiable certificate (e.g. an in-cluster `registry:2` with no cert), passed through to BuildKit's `registry.insecure=true` image-exporter option
+
 ## [0.6.0] - 2026-08-01
 
 ### Added

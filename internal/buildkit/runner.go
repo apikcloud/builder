@@ -32,6 +32,10 @@ type BuildOptions struct {
 	// archive with. Used when OutputType is "registry" or "docker".
 	Image string
 
+	// Insecure, when true, allows pushing without TLS verification. Only
+	// applies when OutputType == "registry".
+	Insecure bool
+
 	// CacheDir enables BuildKit's local on-disk cache (type=local) at this
 	// directory, used when cache is enabled and no registry image is
 	// configured. Mutually exclusive with CacheRef — callers should set at

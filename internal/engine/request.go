@@ -66,6 +66,10 @@ type OutputSpec struct {
 	// Type == "registry"; if empty, resolved from odoo-builder.yaml's
 	// image.name/image.tag.
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
+	// Insecure, when true and Type == "registry", allows pushing to a
+	// registry with no TLS or an unverifiable certificate (e.g. an
+	// in-cluster registry:2 with no cert). Ignored for other Types.
+	Insecure bool `json:"insecure,omitempty" yaml:"insecure,omitempty"`
 }
 
 // ResolvedSpec is the engine's fully-resolved view of a request, derived

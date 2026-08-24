@@ -61,3 +61,41 @@ func TestExecRunner_Build_BuildctlStdoutRoutedToStderr(t *testing.T) {
 	require.NoError(t, buildErr)
 	assert.NotContains(t, string(captured), "on-stdout")
 }
+
+func TestExecRunner_Build_RegistryInsecureAppendsOutputOpt(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		insecure bool
+		wantOpt  bool
+	}{
+		{name: "insecure true appends opt", insecure: true, wantOpt: true},
+		{name: "insecure false omits opt", insecure: false, wantOpt: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			capturedArgsPath := filepath.Join(dir, "captured-args.txt")
+			buildctl := filepath.Join(dir, "buildctl")
+			script := "#!/bin/sh\necho \"$@\" > " + capturedArgsPath + "\n"
+			require.NoError(t, os.WriteFile(buildctl, []byte(script), 0o755))
+
+			t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+			t.Setenv("BUILDKIT_HOST", "unix:///tmp/nonexistent.sock")
+
+			_, err := execRunner{}.Build(context.Background(), BuildOptions{
+				OutputType: "registry",
+				Image:      "example.com/app:latest",
+				Insecure:   tc.insecure,
+			})
+			require.NoError(t, err)
+
+			captured, readErr := os.ReadFile(capturedArgsPath)
+			require.NoError(t, readErr)
+
+			if tc.wantOpt {
+				assert.Contains(t, string(captured), "registry.insecure=true")
+			} else {
+				assert.NotContains(t, string(captured), "registry.insecure=true")
+			}
+		})
+	}
+}

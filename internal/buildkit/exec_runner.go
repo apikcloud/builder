@@ -47,6 +47,9 @@ func (execRunner) Build(ctx context.Context, opts BuildOptions) (BuildOutput, er
 			return BuildOutput{}, fmt.Errorf("buildkit: output type \"registry\" requires Image")
 		}
 		outputArg = "type=image,name=" + opts.Image + ",push=true"
+		if opts.Insecure {
+			outputArg += ",registry.insecure=true"
+		}
 	default:
 		return BuildOutput{}, fmt.Errorf("buildkit: unsupported output type %q (must be \"oci\", \"docker\", or \"registry\")", opts.OutputType)
 	}
