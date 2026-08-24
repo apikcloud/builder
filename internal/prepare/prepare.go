@@ -140,6 +140,22 @@ func Prepare(repoRoot, buildDir string, cfg *config.Config) (int, error) {
 		}
 	}
 
+	// migrate.sh and upgrade/ are copied directly into addonsDir (not
+	// buildDir root, unlike requirements.txt/packages.txt) so they ride the
+	// existing "COPY addons/ /mnt/extra-addons/" Dockerfile line and land at
+	// the root of the addons tree inside the image, alongside the addon
+	// directories, with no separate Dockerfile instruction needed.
+	if src := filepath.Join(repoRoot, "migrate.sh"); fileExists(src) {
+		if err := workspace.CopyFile(src, filepath.Join(addonsDir, "migrate.sh")); err != nil {
+			return 0, err
+		}
+	}
+	if src := filepath.Join(repoRoot, "upgrade"); dirExists(src) {
+		if err := workspace.CopyDir(src, filepath.Join(addonsDir, "upgrade")); err != nil {
+			return 0, err
+		}
+	}
+
 	if len(enterpriseAddons) > 0 {
 		sort.Slice(enterpriseAddons, func(i, j int) bool { return enterpriseAddons[i].Name < enterpriseAddons[j].Name })
 		enterpriseAddonsDir := filepath.Join(buildDir, "enterprise-addons")

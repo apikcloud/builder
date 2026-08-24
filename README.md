@@ -69,6 +69,8 @@ repo/
 ├── some_module -> .third-party/OCA/some-repo/some_module   # symlink
 ├── .third-party/
 │    └── OCA/some-repo/      # git submodule
+├── migrate.sh               # optional — Odoo commands to run between updates; copied to /mnt/extra-addons/migrate.sh in the image
+├── upgrade/                 # optional — Python scripts for major upgrades only (not an addon); copied to /mnt/extra-addons/upgrade/ in the image
 ├── requirements.txt         # optional — pip install -r requirements.txt
 ├── packages.txt             # optional — one Debian package per line, blank lines/#comments allowed
 ├── odoo_version.txt         # optional — base image ref, if odoo-builder.yaml's base.version is unset

@@ -457,6 +457,55 @@ func TestPrepare_Enterprise_TipReusesCacheAcrossPrepareCalls(t *testing.T) {
 	}
 }
 
+func TestPrepare_MigrateScript_CopiedToAddonsRoot(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "migrate.sh"), []byte("#!/bin/sh\necho migrate\n"), 0o755))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(buildDir, "addons", "migrate.sh"))
+	require.NoError(t, err)
+	assert.Equal(t, "#!/bin/sh\necho migrate\n", string(data))
+}
+
+func TestPrepare_UpgradeFolder_CopiedToAddonsRoot(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "upgrade"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "upgrade", "18.0.1.py"), []byte("# upgrade script\n"), 0o644))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(buildDir, "addons", "upgrade", "18.0.1.py"))
+	require.NoError(t, err)
+	assert.Equal(t, "# upgrade script\n", string(data))
+}
+
+func TestPrepare_NoMigrateScriptOrUpgradeFolder_OmitsBoth(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "addons", "some_module"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "addons", "some_module", "__manifest__.py"), []byte("{'name': 'Some Module'}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "odoo_version.txt"), []byte("odoo:18.0-20260723\n"), 0o644))
+
+	buildDir := filepath.Join(t.TempDir(), ".build")
+	_, err := prepare.Prepare(root, buildDir, config.Default())
+	require.NoError(t, err)
+
+	_, err = os.Stat(filepath.Join(buildDir, "addons", "migrate.sh"))
+	assert.True(t, os.IsNotExist(err))
+	_, err = os.Stat(filepath.Join(buildDir, "addons", "upgrade"))
+	assert.True(t, os.IsNotExist(err))
+}
+
 // buildZip returns a zip archive with one entry per name -> content pair,
 // wrapped as the github provider expects (a single top-level folder,
 // stripped on extraction).
