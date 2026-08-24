@@ -17,6 +17,12 @@ type execRunner struct{}
 func NewRunner() Runner { return execRunner{} }
 
 func (execRunner) Build(ctx context.Context, opts BuildOptions) (BuildOutput, error) {
+	hostIsExternal := os.Getenv("BUILDKIT_HOST") != ""
+	tls, err := loadTLSEnv(hostIsExternal)
+	if err != nil {
+		return BuildOutput{}, err
+	}
+
 	addr, cleanup, err := ensureDaemon(ctx)
 	if err != nil {
 		return BuildOutput{}, err
@@ -60,14 +66,14 @@ func (execRunner) Build(ctx context.Context, opts BuildOptions) (BuildOutput, er
 		}
 	}
 
-	args := []string{
-		"--addr", addr,
-		"build",
+	args := []string{"--addr", addr}
+	args = append(args, tlsArgs(tls)...)
+	args = append(args, "build",
 		"--frontend", "dockerfile.v0",
-		"--local", "context=" + opts.ContextDir,
-		"--local", "dockerfile=" + filepath.Dir(opts.DockerfilePath),
+		"--local", "context="+opts.ContextDir,
+		"--local", "dockerfile="+filepath.Dir(opts.DockerfilePath),
 		"--output", outputArg,
-	}
+	)
 	args = append(args, platformArgs(opts.Platforms)...)
 	args = append(args, cacheArgs(opts.CacheRef, opts.CacheDir)...)
 	args = append(args, imageResolveModeArgs()...)

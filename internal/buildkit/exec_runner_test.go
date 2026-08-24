@@ -99,3 +99,67 @@ func TestExecRunner_Build_RegistryInsecureAppendsOutputOpt(t *testing.T) {
 		})
 	}
 }
+
+func TestExecRunner_Build_TLSEnvAppendsFlags(t *testing.T) {
+	dir := t.TempDir()
+	capturedArgsPath := filepath.Join(dir, "captured-args.txt")
+	buildctl := filepath.Join(dir, "buildctl")
+	script := "#!/bin/sh\necho \"$@\" > " + capturedArgsPath + "\n"
+	require.NoError(t, os.WriteFile(buildctl, []byte(script), 0o755))
+
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("BUILDKIT_HOST", "tcp://buildkitd.example:1234")
+	t.Setenv("BUILDKIT_TLS_CERT", "/tls/cert.pem")
+	t.Setenv("BUILDKIT_TLS_KEY", "/tls/key.pem")
+	t.Setenv("BUILDKIT_TLS_CACERT", "/tls/ca.pem")
+
+	_, err := execRunner{}.Build(context.Background(), BuildOptions{
+		OutputType: "oci",
+		OutputPath: filepath.Join(dir, "out.tar"),
+	})
+	require.NoError(t, err)
+
+	captured, readErr := os.ReadFile(capturedArgsPath)
+	require.NoError(t, readErr)
+	assert.Contains(t, string(captured), "--tlscert /tls/cert.pem --tlskey /tls/key.pem --tlscacert /tls/ca.pem")
+}
+
+func TestExecRunner_Build_TLSEnvUnsetOmitsFlags(t *testing.T) {
+	dir := t.TempDir()
+	capturedArgsPath := filepath.Join(dir, "captured-args.txt")
+	buildctl := filepath.Join(dir, "buildctl")
+	script := "#!/bin/sh\necho \"$@\" > " + capturedArgsPath + "\n"
+	require.NoError(t, os.WriteFile(buildctl, []byte(script), 0o755))
+
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("BUILDKIT_HOST", "unix:///tmp/nonexistent.sock")
+
+	_, err := execRunner{}.Build(context.Background(), BuildOptions{
+		OutputType: "oci",
+		OutputPath: filepath.Join(dir, "out.tar"),
+	})
+	require.NoError(t, err)
+
+	captured, readErr := os.ReadFile(capturedArgsPath)
+	require.NoError(t, readErr)
+	assert.NotContains(t, string(captured), "--tlscert")
+}
+
+func TestExecRunner_Build_TLSEnvPartialSetErrors(t *testing.T) {
+	t.Setenv("BUILDKIT_HOST", "tcp://buildkitd.example:1234")
+	t.Setenv("BUILDKIT_TLS_CERT", "/tls/cert.pem")
+
+	_, err := execRunner{}.Build(context.Background(), BuildOptions{OutputType: "oci", OutputPath: t.TempDir() + "/out.tar"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must all be set together")
+}
+
+func TestExecRunner_Build_TLSEnvWithoutExternalHostErrors(t *testing.T) {
+	t.Setenv("BUILDKIT_TLS_CERT", "/tls/cert.pem")
+	t.Setenv("BUILDKIT_TLS_KEY", "/tls/key.pem")
+	t.Setenv("BUILDKIT_TLS_CACERT", "/tls/ca.pem")
+
+	_, err := execRunner{}.Build(context.Background(), BuildOptions{OutputType: "oci", OutputPath: t.TempDir() + "/out.tar"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "self-spawned buildkitd")
+}

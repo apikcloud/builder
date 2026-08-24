@@ -6,7 +6,10 @@ import "os"
 // forwardedEnvVars are the only host environment variables passed into
 // the container — just enough for a build to succeed, not a blanket
 // os.Environ() passthrough (which would leak unrelated host secrets).
-var forwardedEnvVars = []string{"ODOO_ENTERPRISE_TOKEN", "BUILDKIT_HOST", "DOCKER_CONFIG"}
+var forwardedEnvVars = []string{
+	"ODOO_ENTERPRISE_TOKEN", "BUILDKIT_HOST", "DOCKER_CONFIG",
+	"BUILDKIT_TLS_CERT", "BUILDKIT_TLS_KEY", "BUILDKIT_TLS_CACERT",
+}
 
 // ForwardedEnv returns "KEY=VALUE" pairs for every forwardedEnvVars entry
 // currently set in the host environment.

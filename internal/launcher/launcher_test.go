@@ -107,4 +107,14 @@ func TestForwardedEnv(t *testing.T) {
 
 	t.Setenv("BUILDKIT_HOST", "unix:///tmp/x.sock")
 	assert.Equal(t, []string{"BUILDKIT_HOST=unix:///tmp/x.sock"}, ForwardedEnv())
+
+	t.Setenv("BUILDKIT_TLS_CERT", "/tls/cert.pem")
+	t.Setenv("BUILDKIT_TLS_KEY", "/tls/key.pem")
+	t.Setenv("BUILDKIT_TLS_CACERT", "/tls/ca.pem")
+	assert.Equal(t, []string{
+		"BUILDKIT_HOST=unix:///tmp/x.sock",
+		"BUILDKIT_TLS_CERT=/tls/cert.pem",
+		"BUILDKIT_TLS_KEY=/tls/key.pem",
+		"BUILDKIT_TLS_CACERT=/tls/ca.pem",
+	}, ForwardedEnv())
 }
