@@ -2,6 +2,18 @@
 
 This page summarizes what's new and fixed in each version.
 
+## [0.7.0] - 2026-08-24
+
+A new option for pushing to registries without TLS, plus a fix to keep upgrade scripts in place inside the built image.
+
+### ✨ What's new
+
+- You can now push images to a registry that doesn't use TLS or has an unverifiable certificate (e.g. an in-cluster registry with no cert) — useful for internal/dev setups.
+
+### 🔄 Improvements
+
+- `migrate.sh` and the `upgrade/` folder now stay at the addons root of the built image, so upgrade tooling that expects them there keeps working.
+
 ## [0.6.0] - 2026-08-01
 
 Faster repeat builds for Enterprise users, plus clearer progress reporting.
